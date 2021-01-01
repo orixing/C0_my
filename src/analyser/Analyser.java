@@ -1247,11 +1247,11 @@ public final class Analyser {
             Token token = expect(TokenType.UINT_LITERAL);
             if(globalflag==true)
             {
-                start.add(new Instruction(Operation.push, (Integer)token.getValue()));
+                start.add(new Instruction(Operation.push, Integer.getInteger(token.getValue().toString())));
             }
             else
             {
-                instructions.add(new Instruction(Operation.push, (Integer)token.getValue()));
+                instructions.add(new Instruction(Operation.push, Integer.getInteger(token.getValue().toString())));
             }
             return SymbolType.Int;
         }
