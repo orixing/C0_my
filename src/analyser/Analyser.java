@@ -199,7 +199,7 @@ public final class Analyser {
     {true, true, true, true, true, true, true, true, true, true, false},// /
     {true, true, true, true, true, true, true, true, true, true, true}};//as
 
-    private void deal(Stack<TokenType> symbols, Stack<SymbolType> Exprs, boolean globalflag) throws CompileError {
+    private void huisu(Stack<TokenType> symbols, Stack<SymbolType> Exprs, boolean globalflag) throws CompileError {
         if(Exprs.size() <= 1)
         {
             throw new  AnalyzeError(ErrorCode.InvalidInput, new Pos(0,0));
@@ -1195,7 +1195,7 @@ public final class Analyser {
 
             } 
             else if (y == -1 || map[x][y] == true) {
-                deal(symbolStack, exprStack, globalflag);
+                huisu(symbolStack, exprStack, globalflag);
             }
         }
         return exprStack.peek();
