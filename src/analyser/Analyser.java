@@ -483,16 +483,23 @@ public final class Analyser {
         // start函数,添加函数，全局变量，alloc0和调用main
         Globals.add("_start");
         FunctionEntry s = new FunctionEntry(Operation.func,0, 0, 0, globalOffset++);
-        funcOffset++;
         start.add(s);
-        Instruction alloc = new Instruction(Operation.stackalloc, 0);
-        start.add(alloc);
 
-        while (peek().getTokenType() != TokenType.EOF) {
-            analyseItem(SymbolRange.Global);
+        while (check(TokenType.FN_KW) || check(TokenType.LET_KW) || check(TokenType.CONST_KW))
+        {
+            if (check(TokenType.FN_KW))
+            {
+                analyseFunction();
+            }
+            else
+            {
+                analyseDecl_stmt(SymbolRange.Global);
+            }
         }
 
         expect(TokenType.EOF);
+        Instruction alloc = new Instruction(Operation.stackalloc, 0);
+        start.add(alloc);
         Instruction call = new Instruction(Operation.call, this.symbolTable.get(this.hash.get("main")).funcOffset);
         start.add(call);
     }
@@ -500,13 +507,13 @@ public final class Analyser {
     /**
      * item -> function | decl_stmt
      */
-    private void analyseItem(SymbolRange range) throws CompileError {
-        if (peek().getTokenType() == TokenType.FN_KW) {
-            analyseFunction();
-        } else if (peek().getTokenType() == TokenType.LET_KW || peek().getTokenType() == TokenType.CONST_KW) {
-            analyseDecl_stmt(range);
-        }
-    }
+    // private void analyseItem(SymbolRange range) throws CompileError {
+    //     if (peek().getTokenType() == TokenType.FN_KW) {
+    //         analyseFunction();
+    //     } else if (peek().getTokenType() == TokenType.LET_KW || peek().getTokenType() == TokenType.CONST_KW) {
+    //         analyseDecl_stmt(range);
+    //     }
+    // }
 
     /**
      * function_param -> 'const'? IDENT ':' ty function_param_list -> function_param
@@ -518,7 +525,8 @@ public final class Analyser {
         Token funcname = expect(TokenType.IDENT);
 
         Integer location = this.hash.get(funcname.getValueString());
-        if (location != null && location >= this.index.peek()) {
+        if (location != null && location >= this.index.peek()) 
+        {
             throw new AnalyzeError(ErrorCode.DuplicateDeclaration, funcname.getStartPos());
         }
         SymbolEntry s = new SymbolEntry(funcname.getValueString(), true, SymbolRange.Global, globalOffset++,
@@ -532,12 +540,11 @@ public final class Analyser {
         FunctionEntry func = new FunctionEntry(Operation.func);
         instructions.add(func);
         expect(TokenType.L_PAREN);
-        if (peek().getTokenType() == TokenType.CONST_KW || peek().getTokenType() == TokenType.IDENT) {
+        if (peek().getTokenType() == TokenType.IDENT) {
             analyseFunction_param_list(s.params);
         }
         expect(TokenType.R_PAREN);
         expect(TokenType.ARROW);
-
         SymbolType type;
         if (peek().getTokenType() == TokenType.INT_KW) {
             next();
