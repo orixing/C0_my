@@ -1557,26 +1557,27 @@ public final class Analyser {
     public void output(File output)throws IOException 
     {
         FileOutputStream out = new FileOutputStream(output);
-        outputint(out,0x72303b3e);
-        outputint(out,1);
-        outputint(out,Globals.size());
-        for (String global : Globals) {
+        printint(0x72303b3e);
+        printint(1);
+        printint(Globals.size());
+        for (String global : Globals) 
+        {
             if(global=="0")
             {
                 out.write(0);
-                outputint(out,8);
-                outputlong(out,0);
+                printint(8);
+                printlong(0L);
             }
             else if(global=="1")
             {
                 out.write(1);
-                outputint(out,8);
-                outputlong(out,0);
+                printint(8);
+                printlong(0L);
             }
             else
             {
                 out.write(1);
-                outputint(out,global.length());
+                printint(global.length());
                 out.write(global.getBytes());
             }
         }
@@ -1592,17 +1593,17 @@ public final class Analyser {
             }
         }
         funcs.add(new ArrayList<>(instructions.subList(startaddr, instructions.size())));
-        outputint(out, funcs.size());
+        printint( funcs.size());
         for (ArrayList<Object> funcins : funcs) {
             for (Object object : funcins) {
                 if (object.getClass().isAssignableFrom(FunctionEntry.class)) 
                 {
                     FunctionEntry afunc = (FunctionEntry) object;
-                    outputint(out, afunc.offset);
-                    outputint(out, afunc.returnum);
-                    outputint(out, afunc.paramnum);
-                    outputint(out, afunc.localnum);
-                    outputint(out, funcins.size()-1);
+                    printint( afunc.offset);
+                    printint( afunc.returnum);
+                    printint( afunc.paramnum);
+                    printint( afunc.localnum);
+                    printint( funcins.size()-1);
                 }
                 else
                 {
@@ -1612,11 +1613,11 @@ public final class Analyser {
                     {
                         if (ain.opt == Operation.push)
                         {
-                            outputlong(out,Long.valueOf(ain.x.toString()));
+                            printlong(Long.valueOf(ain.x.toString()));
                         }
                         else
                         {
-                            outputint(out,(int)ain.x);
+                            printint((int) ain.x);
                         }
                     }
                         
@@ -1626,23 +1627,27 @@ public final class Analyser {
         out.close();
     }
 
-    public void outputlong(FileOutputStream out,long i) throws IOException
-    {
-        long tmp = i;
-        for(int j=7;j>=0;j--)
-        {
-            tmp = i;
-            out.write((byte) (tmp>>(8*j)) );
-        }
+    public static byte[] printlong(long val) {
+        byte[] b = new byte[8];
+        b[7] = (byte) (val & 0xff);
+        b[6] = (byte) ((val >> 8) & 0xff);
+        b[5] = (byte) ((val >> 16) & 0xff);
+        b[4] = (byte) ((val >> 24) & 0xff);
+        b[3] = (byte) ((val >> 32) & 0xff);
+        b[2] = (byte) ((val >> 40) & 0xff);
+        b[1] = (byte) ((val >> 48) & 0xff);
+        b[0] = (byte) ((val >> 56) & 0xff);
+        return b;
     }
-    public void outputint(FileOutputStream out,int i) throws IOException
-    {
-        int tmp = i;
-        for(int j=3;j>=0;j--)
-        {
-            tmp = i;
-            out.write((byte) (tmp>>(8*j)) );
-        }
+
+    public static byte[] printint(int val) {
+        byte[] b = new byte[4];
+        b[3] = (byte) (val & 0xff);
+        b[2] = (byte) ((val >> 8) & 0xff);
+        b[1] = (byte) ((val >> 16) & 0xff);
+        b[0] = (byte) ((val >> 24) & 0xff);
+        return b;
     }
+
 
 }
