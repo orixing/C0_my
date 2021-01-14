@@ -48,43 +48,31 @@ public class Tokenizer {
         it.nextChar();
         char peek;
         while (it.isEOF()==false && (peek = it.peekChar()) != '"') {
-            if (peek == '\\') 
-            {
+            if (peek == '\\') {
                 it.nextChar();
-                char next = it.nextChar();
-                if(next=='\\')
-                {
-                    tmpToken.append('\\');
+                switch (it.nextChar()) {
+                    case '\\':
+                        tmpToken.append('\\');
+                        break;
+                    case '"':
+                        tmpToken.append('"');
+                        break;
+                    case '\'':
+                        tmpToken.append('\'');
+                        break;
+                    case 'n':
+                        tmpToken.append('\n');
+                        break;
+                    case 'r':
+                        tmpToken.append('\r');
+                        break;
+                    case 't':
+                        tmpToken.append('\t');
+                        break;
+                    default:
+                        throw new TokenizeError(ErrorCode.InvalidInput, it.previousPos());
                 }
-                else if(next=='"')
-                {
-                    tmpToken.append('"');
-                }
-                else if(next=='\'')
-                {
-                    tmpToken.append('\'');
-                }
-                else if(next=='n')
-                {
-                    tmpToken.append('\n');
-                }
-                else if(next=='r')
-                {
-                    tmpToken.append('\r');
-                }
-                else if(next=='t')
-                {
-                    tmpToken.append('\t');
-                }
-                else
-                {
-                    throw new TokenizeError(ErrorCode.IncompleteExpression, it.previousPos());
-                }
-            } 
-            else
-            {
-                tmpToken.append(it.nextChar());
-            }
+            } else tmpToken.append(it.nextChar());
         }
         if (it.isEOF()) {
             throw new TokenizeError(ErrorCode.InvalidInput, it.previousPos());
@@ -324,7 +312,7 @@ public class Tokenizer {
         }
         else if(s.equals("int")==true)
         {
-            return new Token(TokenType.DOUBLE_KW,s,pos,it.currentPos());
+            return new Token(TokenType.INT_KW,s,pos,it.currentPos());
         }
         else if(s.equals("double")==true)
         {
@@ -332,7 +320,7 @@ public class Tokenizer {
         }
         else if(s.equals("void")==true)
         {
-            return new Token(TokenType.DOUBLE_KW,s,pos,it.currentPos());
+            return new Token(TokenType.VOID_KW,s,pos,it.currentPos());
         }
         else
         {
