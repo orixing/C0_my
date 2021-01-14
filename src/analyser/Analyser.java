@@ -60,6 +60,18 @@ public final class Analyser {
 
     public void analyse(File args) throws CompileError, IOException {
         analyseProgram();
+        for (String i : Globals) 
+        {
+            System.out.println(i);
+        }
+        System.out.println();
+        for (Object i : instructions) {
+            System.out.println(i.toString());
+        }
+        System.out.println();
+        for (Object i : start) {
+            System.out.println(i.toString());
+        }
         output(args);
     }
 
