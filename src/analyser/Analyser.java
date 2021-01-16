@@ -689,11 +689,9 @@ public final class Analyser {
      * function_param_list -> function_param (',' function_param)*
      */
     private void analyseFunction_param_list(ArrayList<SymbolType> params) throws CompileError {
-        analyseFunction_param(params);
-        while (peek().getTokenType() == TokenType.COMMA) {
-            expect(TokenType.COMMA);
+        do {
             analyseFunction_param(params);
-        }
+        } while (nextIf(TokenType.COMMA) != null);
     }
 
     /**
@@ -708,17 +706,15 @@ public final class Analyser {
         Token name = expect(TokenType.IDENT);
         expect(TokenType.COLON);
         SymbolType type;
-        if (peek().getTokenType() == TokenType.INT_KW) {
-            next();
+        if (nextIf(TokenType.INT_KW) != null)
             type = SymbolType.Int;
-        } else if (peek().getTokenType() == TokenType.DOUBLE_KW) {
-            next();
+        else if (nextIf(TokenType.DOUBLE_KW) != null)
             type = SymbolType.Double;
-        } else if (peek().getTokenType() == TokenType.VOID_KW) {
-            next();
+        else if (nextIf(TokenType.VOID_KW) != null)
             type = SymbolType.Void;
-        } else {
-            throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
+        else {
+            List<TokenType> list = Arrays.asList(TokenType.INT_KW, TokenType.DOUBLE_KW, TokenType.VOID_KW);
+            throw new ExpectedTokenError(list, peek());
         }
         addSymbol(name.getValueString(), constflag, true, type, SymbolRange.Param, name.getStartPos());
         params.add(type);
