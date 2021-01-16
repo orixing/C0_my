@@ -218,7 +218,6 @@ public final class Analyser {
 
     private void huisu(Stack<TokenType> symbols, Stack<SymbolType> Exprs, boolean globalflag) throws CompileError {
         if (Exprs.size() <= 1) 
-        
         {
             throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
         }
@@ -1119,341 +1118,189 @@ public final class Analyser {
 
     private SymbolType analyseExpr(boolean globalflag) throws CompileError 
     {
-        // negate_expr -> '-' expr
-        if (peek().getTokenType() == TokenType.MINUS) 
-        {
-            expect(TokenType.MINUS);
-            SymbolType e = analyseExpr(globalflag);
-            if (e == SymbolType.Int) 
-            {
-                if (globalflag == true) 
-                {
-                    start.add(new Instruction(Operation.negi));
-                } 
-                else 
-                {
-                    instructions.add(new Instruction(Operation.negi));
-                }
-            } 
-            else if (e == SymbolType.Double) 
-            {
-                if (globalflag == true) 
-                {
-                    start.add(new Instruction(Operation.negf));
-                } 
-                else 
-                {
-                    instructions.add(new Instruction(Operation.negf));
-                }
-            }
-            return e;
-        }
-        // literal_expr -> UINT_LITERAL | DOUBLE_LITERAL | STRING_LITERAL | CHAR_LITERAL
-        else if (peek().getTokenType() == TokenType.UINT_LITERAL) 
-        {
-            Token token = expect(TokenType.UINT_LITERAL);
-            if (globalflag == true) 
-            {
-                start.add(new Instruction(Operation.push, Integer.getInteger(token.getValue().toString())));
-            } 
-            else 
-            {
-                instructions.add(new Instruction(Operation.push, Integer.getInteger(token.getValue().toString())));
-            }
+        Token token;
+        ArrayList<Instruction> chosenInstruction;
+        if (globalflag)
+            chosenInstruction = start;
+        else
+            chosenInstruction = instructions;
+        if (check(TokenType.UINT_LITERAL)) {
+            token = expect(TokenType.UINT_LITERAL);
+            chosenInstruction.add(new Instruction(Operation.push, token.getValue()));
             return SymbolType.Int;
-        } 
-        else if (peek().getTokenType() == TokenType.DOUBLE_LITERAL) 
-        {
-            Token token = expect(TokenType.DOUBLE_LITERAL);
-            if (globalflag == true) 
-            {
-                start.add(new Instruction(Operation.push, Double.doubleToRawLongBits((double) token.getValue())));
-            } 
-            else 
-            {
-                instructions.add(new Instruction(Operation.push, Double.doubleToRawLongBits((double) token.getValue())));
-            }
+        } else if (check(TokenType.DOUBLE_LITERAL)) {
+            token = expect(TokenType.DOUBLE_LITERAL);
+            chosenInstruction.add(new Instruction(Operation.push, Double.doubleToRawLongBits((double) token.getValue())));
             return SymbolType.Double;
-        } else if (peek().getTokenType() == TokenType.STRING_LITERAL) 
-        {
-            Token token = expect(TokenType.STRING_LITERAL);
-            if (globalflag == true) 
-            {
-                start.add(new Instruction(Operation.push, (long) globalOffset++));
-            } 
-            else 
-            {
-                instructions.add(new Instruction(Operation.push, (long) globalOffset++));
-            }
+        } else if (check(TokenType.STRING_LITERAL)) {
+            token = expect(TokenType.STRING_LITERAL);
+            chosenInstruction.add(new Instruction(Operation.push, (long) globalOffset++));
+            Globals.add(token.getValueString());
             return SymbolType.Int;
-        } else if (peek().getTokenType() == TokenType.CHAR_LITERAL) 
-        {
-            Token token = expect(TokenType.CHAR_LITERAL);
-            if (globalflag == true) 
-            {
-                start.add(new Instruction(Operation.push, (int) (char) token.getValue()));
-            } 
-            else 
-            {
-                instructions.add(new Instruction(Operation.push, (int) (char) token.getValue()));
-            }
+        } else if (check(TokenType.CHAR_LITERAL)) {
+            token = expect(TokenType.CHAR_LITERAL);
+            chosenInstruction.add(new Instruction(Operation.push, (long) (char) token.getValue()));
             return SymbolType.Int;
-        }
-        // assign_expr -> l_expr '=' expr
-        // l_expr -> IDENT
-        // call_expr -> IDENT '(' call_param_list? ')'
-        // call_param_list -> expr (',' expr)*
-        // ident_expr -> IDENT
-        else if (peek().getTokenType() == TokenType.IDENT) 
-        {
-            Token token = expect(TokenType.IDENT);
-            Integer addr = this.hash.get(token.getValueString());
-            SymbolEntry s = null;
-            if (addr != null) 
-            {
-                s = this.symbolTable.get(addr);
+        } else if (check(TokenType.IDENT)) {
+            token = expect(TokenType.IDENT);
+            Integer currentIndex = this.hash.get(token.getValueString());
+            SymbolEntry symbol = null;
+            if (currentIndex != null) {
+                symbol = this.symbolTable.get(currentIndex);
             }
-            // assign_expr -> l_expr '=' expr
-            // l_expr -> IDENT
-            if (peek().getTokenType() == TokenType.ASSIGN) 
-            {
-                expect(TokenType.ASSIGN);
-                if (s == null) 
-                {
+
+            if (check(TokenType.ASSIGN)) {
+                if (symbol == null)
                     throw new AnalyzeError(ErrorCode.NotDeclared, token.getStartPos());
+                switch (symbol.symbolRange) {
+                    case Global:
+                        instructions.add(new Instruction(Operation.globa, symbol.stackoffset));
+                        break;
+                    case Param:
+                        instructions.add(new Instruction(Operation.arga, symbol.stackoffset));
+                        break;
+                    case Local:
+                        instructions.add(new Instruction(Operation.loca, symbol.stackoffset));
+                        break;
                 }
-                if (s.symbolRange == SymbolRange.Global) 
-                {
-                    instructions.add(new Instruction(Operation.globa, s.stackoffset));
-                } 
-                else if (s.symbolRange == SymbolRange.Local) 
-                {
-                    instructions.add(new Instruction(Operation.loca, s.stackoffset));
-                } 
-                else if (s.symbolRange == SymbolRange.Param) 
-                {
-                    instructions.add(new Instruction(Operation.arga, s.stackoffset));
-                }
-                SymbolType t=analysebasicexpr(false);
+                Token assign = next();
+                SymbolType SymbolType = analysebasicexpr(false);
                 declareSymbol(token.getValueString(), token.getStartPos());
-                if (t!=s.symbolType) 
-                {
-                    throw new AnalyzeError(ErrorCode.InvalidAssignment, new Pos(0, 0));
-                }
+                if (SymbolType != symbol.symbolType)
+                    throw new AnalyzeError(ErrorCode.InvalidAssignment, new Pos(00,0));
                 instructions.add(new Instruction(Operation.store64));
                 return SymbolType.Void;
-            }
-            // call_expr -> IDENT '(' call_param_list? ')'
-            // call_param_list -> expr (',' expr)*
-            else if (peek().getTokenType() == TokenType.L_PAREN) {
-                /**
-                 * call_param_list -> expr (',' expr)* call_expr -> IDENT '(' call_param_list?
-                 * ')'
-                 */
-                expect(TokenType.L_PAREN);
-                int funcOffset = -1;
+            } else if (nextIf(TokenType.L_PAREN) != null) {
+                SymbolType funcReturnType;
                 ArrayList<SymbolType> params;
-                SymbolType returntype;
-                if (s != null) 
-                {
-                    params = s.params;
-                    returntype = s.symbolType;
-                } 
-                else 
-                {
-                    if (token.getValueString().equals("getint") || token.getValueString().equals("getchar")) 
-                    {
-                        params = new ArrayList<>();
-                        returntype = SymbolType.Int;
-                    } 
-                    else if (token.getValueString().equals("getdouble")) 
-                    {
-                        params = new ArrayList<>();
-                        returntype = SymbolType.Double;
-                    } 
-                    else if (token.getValueString().equals("putchar") || token.getValueString().equals("putint")
-                            || token.getValueString().equals("putstr")) 
-                    {
-                        returntype = SymbolType.Void;
-                        params = new ArrayList<SymbolType>() 
-                        {
-                            {
+                int callnameOffset = -1;
+                if (symbol == null) {
+                    switch (token.getValueString()) {
+                        case "getint":
+                        case "getchar":
+                            funcReturnType = SymbolType.Int;
+                            params = new ArrayList<>();
+                            break;
+                        case "getdouble":
+                            funcReturnType = SymbolType.Double;
+                            params = new ArrayList<>();
+                            break;
+                        case "putint":
+                        case "putchar":
+                        case "putstr":
+                            funcReturnType = SymbolType.Void;
+                            params = new ArrayList<SymbolType>() {{
                                 add(SymbolType.Int);
-                            }
-                        };
-                    } 
-                    else if (token.getValueString().equals("putdouble")) 
-                    {
-                        returntype = SymbolType.Void;
-                        params = new ArrayList<SymbolType>() 
-                        {
-                            {
+                            }};
+                            break;
+                        case "putdouble":
+                            funcReturnType = SymbolType.Void;
+                            params = new ArrayList<SymbolType>() {{
                                 add(SymbolType.Double);
-                            }
-                        };
-                       
-                    } 
-                    else if (token.getValueString().equals("putln")) 
-                    {
-                        params = new ArrayList<SymbolType>();
-                        returntype = SymbolType.Void;
-                    } 
-                    else 
-                    {
-                        System.out.println(token.getValueString());
-                        throw new AnalyzeError(ErrorCode.InvalidAssignment, new Pos(0, 0));
+                            }};
+                            break;
+                        case "putln":
+                            funcReturnType = SymbolType.Void;
+                            params = new ArrayList<>();
+                            break;
+//                        case "main":
+//                            funcReturnType = SymbolType.VOID;
+//                            params = new ArrayList<>();
+//                            haveMain = true;
+//                            break;
+                        default:
+                            throw new AnalyzeError(ErrorCode.NotDeclared, token.getStartPos());
                     }
                     Globals.add(token.getValueString());
-                    funcOffset = globalOffset++;
+                    callnameOffset = globalOffset++;
+                } else {
+                    funcReturnType = symbol.symbolType;
+                    params = symbol.params;
                 }
-                if (returntype == SymbolType.Void) 
-                {
-                    if (globalflag == true) 
-                    {
-                        start.add(new Instruction(Operation.stackalloc, 0));
-                    } 
-                    else 
-                    {
-                        instructions.add(new Instruction(Operation.stackalloc, 0));
-                    }
-                } 
-                else 
-                {
-                    if (globalflag == true) 
-                    {
-                        start.add(new Instruction(Operation.stackalloc, 1));
-                    } 
-                    else 
-                    {
-                        instructions.add(new Instruction(Operation.stackalloc, 1));
-                    }
-                }
-                int paramnum = params.size();
-                int i = 0;
-                if (peek().getTokenType() == TokenType.MINUS || peek().getTokenType() == TokenType.IDENT
-                        || peek().getTokenType() == TokenType.UINT_LITERAL
-                        || peek().getTokenType() == TokenType.DOUBLE_LITERAL
-                        || peek().getTokenType() == TokenType.STRING_LITERAL
-                        || peek().getTokenType() == TokenType.CHAR_LITERAL
-                        || peek().getTokenType() == TokenType.L_PAREN) 
-                {
-                    SymbolType type = analysebasicexpr(globalflag);
-                    if (i + 1 > paramnum || type != params.get(i++)) 
-                    {
-                        throw new AnalyzeError(ErrorCode.InvalidAssignment, new Pos(paramnum, 0));
-                    }
-                    while (nextIf(TokenType.COMMA) != null) 
-                    {
-                        type = analysebasicexpr(globalflag);
-                        if (i + 1 > paramnum || type != params.get(i++)) 
-                        {
-                            throw new AnalyzeError(ErrorCode.InvalidAssignment, new Pos(paramnum, 0));
-                        }
-                    }
 
+                int stackSize;
+                if (funcReturnType == SymbolType.Void)
+                    stackSize = 0;
+                else
+                    stackSize = 1;
+                chosenInstruction.add(new Instruction(Operation.stackalloc, stackSize));
+                int paramsSize = params.size();
+                int i = 0;
+                if (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT_LITERAL) || check(TokenType.DOUBLE_LITERAL) || check(TokenType.STRING_LITERAL) || check(TokenType.CHAR_LITERAL) || check(TokenType.L_PAREN)) {
+                    SymbolType element = analysebasicexpr(globalflag);
+                    if (i + 1 > paramsSize || element != params.get(i++))
+                        throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0,0));
+                    while (nextIf(TokenType.COMMA) != null) {
+                        element = analysebasicexpr(globalflag);
+                        if (i + 1 > paramsSize || element != params.get(i++))
+                            throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0,0));
+                    }
                 }
                 expect(TokenType.R_PAREN);
-                if (s != null) 
-                {
-                    if (globalflag == true) 
-                    {
-                        start.add(new Instruction(Operation.call, s.funcOffset));
-                    } 
-                    else 
-                    {
-                        instructions.add(new Instruction(Operation.call, s.funcOffset));
-                    }
-                } 
-                else 
-                {
-                    if (globalflag == true) 
-                    {
-                        start.add(new Instruction(Operation.callname, funcOffset));
-                    } 
-                    else 
-                    {
-                        instructions.add(new Instruction(Operation.callname, funcOffset));
-                    }
+                if (symbol == null)
+                    chosenInstruction.add(new Instruction(Operation.callname, callnameOffset));
+                else
+                    chosenInstruction.add(new Instruction(Operation.call, symbol.funcOffset));
+                return funcReturnType;
+            } else {
+                if (symbol == null)
+                    throw new AnalyzeError(ErrorCode.NotDeclared, token.getStartPos());
+                switch (symbol.symbolRange) {
+                    case Global:
+                        chosenInstruction.add(new Instruction(Operation.globa, symbol.stackoffset));
+                        break;
+                    case Param:
+                        instructions.add(new Instruction(Operation.arga, symbol.stackoffset));
+                        break;
+                    case Local:
+                        instructions.add(new Instruction(Operation.loca, symbol.stackoffset));
+                        break;
                 }
+                chosenInstruction.add(new Instruction(Operation.load64));
+                return symbol.symbolType;
             }
-            // ident_expr -> IDENT
-            else 
-            {
-                if (s == null) 
-                {
-                    throw new AnalyzeError(ErrorCode.InvalidIdentifier, new Pos(0, 0));
-                }
-                if (globalflag == true)
-                {
-                    if (s.symbolRange == SymbolRange.Global) 
-                    {
-                        start.add(new Instruction(Operation.globa, s.stackoffset));
-                    } 
-                    else if (s.symbolRange == SymbolRange.Local) 
-                    {
-                        start.add(new Instruction(Operation.loca, s.stackoffset));
-                    } 
-                    else if (s.symbolRange == SymbolRange.Param) 
-                    {
-                        start.add(new Instruction(Operation.arga, s.stackoffset));
-                    }
-                    start.add(new Instruction(Operation.load64));
-                } 
-                else 
-                {
-                    if (s.symbolRange == SymbolRange.Global) 
-                    {
-                        instructions.add(new Instruction(Operation.globa, s.stackoffset));
-                    } 
-                    else if (s.symbolRange == SymbolRange.Local) 
-                    {
-                        instructions.add(new Instruction(Operation.loca, s.stackoffset));
-                    } 
-                    else if (s.symbolRange == SymbolRange.Param) 
-                    {
-                        instructions.add(new Instruction(Operation.arga, s.stackoffset));
-                    }
-                    instructions.add(new Instruction(Operation.load64));
-                }
-                return s.symbolType;
-            }
-        }
-
-        // group_expr -> '(' expr ')'
-        else if (peek().getTokenType() == TokenType.L_PAREN) 
-        {
+        } else if (check(TokenType.MINUS)) {
+            return analyseNegateExpr(globalflag);
+        } else if (check(TokenType.L_PAREN)) {
             expect(TokenType.L_PAREN);
-            SymbolType s = analysebasicexpr(globalflag);
+            SymbolType element = analysebasicexpr(globalflag);
             expect(TokenType.R_PAREN);
-            return s;
-        } else 
-        {
-            throw new ExpectedTokenError(peek().getTokenType(), peek());
+            return element;
+        } else
+            throw new ExpectedTokenError(Arrays.asList(TokenType.UINT_LITERAL, TokenType.DOUBLE_LITERAL, TokenType.STRING_LITERAL, TokenType.CHAR_LITERAL, TokenType.IDENT, TokenType.MINUS), peek());
+//        }else if (check(TokenType.MINUS)){
+//            analyseNegateExpr();
+//        } else if (check(TokenType.L_PAREN)) {
+//            analyseGroupExpr();
+//        }
+//        while (check(TokenType.PLUS) || check(TokenType.MINUS) || check(TokenType.MUL) || check(TokenType.DIV) || check(TokenType.EQ) || check(TokenType.NEQ) || check(TokenType.LT) || check(TokenType.GT) || check(TokenType.GE) || check(TokenType.LE) || check(TokenType.AS_KW)) {
+//            if (nextIf(TokenType.AS_KW) != null) {
+//                SymbolType type = analyseType();
+//            } else {
+//                Token operator = next();
+//                switch (operator.getTokenType()) {
+//                    case PLUS:
+//                }
+//            }
+//        }
+    }
+
+
+    private SymbolType analyseNegateExpr(boolean isGlobal) throws CompileError {
+        expect(TokenType.MINUS);
+        SymbolType t = analyseExpr(isGlobal);
+        if (t== SymbolType.Int) {
+            if (isGlobal)
+                start.add(new Instruction(Operation.negi));
+            else
+                instructions.add(new Instruction(Operation.negi));
+        } else {
+            if (isGlobal)
+            start.add(new Instruction(Operation.negf));
+            else
+                instructions.add(new Instruction(Operation.negf));
         }
-        // operator_expr -> expr binary_operator expr
-        // binary_operator -> '+' | '-' | '*' | '/' | '==' | '!=' | '<' | '>' | '<=' |
-        // '>='
-        // as_expr -> expr 'as' ty
-        // if(peek().getTokenType() == TokenType.AS_KW)
-        // {
-        // expect(TokenType.AS_KW);
-        // expect(TokenType.IDENT);
-        // }
-        // else if(peek().getTokenType() == TokenType.PLUS ||
-        // peek().getTokenType() == TokenType.MINUS ||
-        // peek().getTokenType() == TokenType.MUL ||
-        // peek().getTokenType() == TokenType.DIV ||
-        // peek().getTokenType() == TokenType.EQ ||
-        // peek().getTokenType() == TokenType.NEQ ||
-        // peek().getTokenType() == TokenType.LT ||
-        // peek().getTokenType() == TokenType.GT ||
-        // peek().getTokenType() == TokenType.LE ||
-        // peek().getTokenType() == TokenType.GE)
-        // {
-        // next();
-        // analyseExpr();
-        // }
-        return null;
+        return t;
     }
 
     public void output(File output) throws IOException {
