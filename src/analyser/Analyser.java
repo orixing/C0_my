@@ -521,11 +521,16 @@ public final class Analyser {
      * @throws AnalyzeError 如果未定义则抛异常
      */
     private void declareSymbol(String name, Pos curPos) throws AnalyzeError {
-        var entry = this.symbolTable.get(hash.get(name));
-        if (entry == null || entry.isConstant == true) {
-            throw new AnalyzeError(ErrorCode.NotDeclared, curPos);
-        } else {
-            entry.isInitialized = true;
+        SymbolEntry entry = this.symbolTable.get(hash.get(name));
+        if (entry.isConstant) {
+            throw new AnalyzeError(ErrorCode.AssignToConstant, curPos);
+        } 
+        else 
+        {
+            if (entry.isInitialized==false)
+            {
+                entry.isInitialized=true;
+            }
         }
     }
 
@@ -741,23 +746,15 @@ public final class Analyser {
      */
     private void analyseLet_decl_stmt(SymbolRange range) throws CompileError {
         expect(TokenType.LET_KW);
-        boolean globalflag;
-        if (range == SymbolRange.Global) {
-            globalflag = true;
-        } else {
-            globalflag = false;
-        }
+        boolean globalflag = range == SymbolRange.Global;
         Token NAME = expect(TokenType.IDENT);// 变量名
         expect(TokenType.COLON);
         SymbolType type;
-        if (peek().getTokenType() == TokenType.INT_KW) {
-            next();
+        if (nextIf(TokenType.INT_KW) != null) {
             type = SymbolType.Int;
-        } else if (peek().getTokenType() == TokenType.DOUBLE_KW) {
-            next();
+        } else if (nextIf(TokenType.DOUBLE_KW) != null){
             type = SymbolType.Double;
-        } else if (peek().getTokenType() == TokenType.VOID_KW) {
-            next();
+        } else if (nextIf(TokenType.VOID_KW) != null) {
             type = SymbolType.Void;
         } else {
             throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
@@ -768,7 +765,7 @@ public final class Analyser {
         }
         addSymbol(NAME.getValueString(), false, false, type, range, NAME.getStartPos());
         SymbolEntry thissymbol = symbolTable.peek();
-        if (peek().getTokenType() == TokenType.ASSIGN) {
+        if (nextIf(TokenType.ASSIGN) != null) {
             if (globalflag == true) 
             {
                 start.add(new Instruction(Operation.globa, thissymbol.stackoffset));
@@ -777,7 +774,6 @@ public final class Analyser {
             {
                 instructions.add(new Instruction(Operation.loca, thissymbol.stackoffset));
             }
-            expect(TokenType.ASSIGN);
             SymbolType t = analysebasicexpr(globalflag);
             if (type != t)
                 throw new AnalyzeError(ErrorCode.InvalidIdentifier, new Pos(0, 0));
