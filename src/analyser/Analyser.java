@@ -453,50 +453,48 @@ public final class Analyser {
      * @param curPos        当前 token 的位置（报错用）
      * @throws AnalyzeError 如果重复定义了则抛异常
      */
-    private void addSymbol(String name, boolean isInitialized, boolean isConstant, SymbolType symbolType,
-            SymbolRange symbolRange, Pos curPos) throws AnalyzeError {
-        if (this.hash.get(name) == null)// 没有出现过
-        {
-            if (symbolRange == SymbolRange.Global) {
-                this.symbolTable.push(
-                        new SymbolEntry(name, isConstant, isInitialized, symbolType, symbolRange, globalOffset++));
-                if (isConstant)
-                    Globals.add("1");
-                else
-                    Globals.add("0");
-            } else if (symbolRange == SymbolRange.Local) {
-                this.symbolTable
-                        .push(new SymbolEntry(name, isConstant, isInitialized, symbolType, symbolRange, localOffset++));
-            } else if (symbolRange == SymbolRange.Param) {
-                this.symbolTable
-                        .push(new SymbolEntry(name, isConstant, isInitialized, symbolType, symbolRange, paramOffset++));
+    private SymbolEntry addSymbol(String name, boolean isConstant, boolean isInitialized, SymbolType symbolType, SymbolRange range, Pos curPos) throws AnalyzeError {
+        Integer addr = this.hash.get(name);
+        if (addr != null && addr >= this.index.peek()) {
+            throw new AnalyzeError(ErrorCode.DuplicateDeclaration, curPos);
+        } else {
+            if (addr != null) {
+                switch (range) {
+                    case Global:
+                        this.symbolTable.push(new SymbolEntry(name, isConstant, isInitialized, symbolType, range, globalOffset++,addr));
+                        if (isConstant)
+                            Globals.add("1");
+                        else
+                            Globals.add("0");
+                        break;
+                    case Param:
+                        this.symbolTable.push(new SymbolEntry(name, isConstant, isInitialized, symbolType, range, paramOffset++,addr));
+                        break;
+                    case Local:
+                        this.symbolTable.push(new SymbolEntry(name, isConstant, isInitialized, symbolType, range, localOffset++,addr));
+                        break;
+                }
+                
             } else {
-                throw new AnalyzeError(ErrorCode.InvalidIdentifier, curPos);
+                switch (range) {
+                    case Global:
+                        this.symbolTable.push(new SymbolEntry(name, isConstant, isInitialized, symbolType, range, globalOffset++));
+                        if (isConstant)
+                            Globals.add("1");
+                        else
+                            Globals.add("0");
+                        break;
+                    case Param:
+                        this.symbolTable.push(new SymbolEntry(name, isConstant, isInitialized, symbolType, range, paramOffset++));
+                        break;
+                    case Local:
+                        this.symbolTable.push(new SymbolEntry(name, isConstant, isInitialized, symbolType, range, localOffset++));
+                        break;
+                }s
             }
-        } else// 作用域嵌套
-        {
-            if (this.hash.get(name) >= this.index.peek())// 重复定义
-            {
-                throw new AnalyzeError(ErrorCode.InvalidIdentifier, curPos);
-            }
-            if (symbolRange == SymbolRange.Global) {
-                this.symbolTable.push(
-                        new SymbolEntry(name, isConstant, isInitialized, symbolType, symbolRange, globalOffset++));
-                if (isConstant)
-                    Globals.add("1");
-                else
-                    Globals.add("0");
-            } else if (symbolRange == SymbolRange.Local) {
-                this.symbolTable
-                        .push(new SymbolEntry(name, isConstant, isInitialized, symbolType, symbolRange, localOffset++));
-            } else if (symbolRange == SymbolRange.Param) {
-                this.symbolTable
-                        .push(new SymbolEntry(name, isConstant, isInitialized, symbolType, symbolRange, paramOffset++));
-            } else {
-                throw new AnalyzeError(ErrorCode.InvalidIdentifier, curPos);
-            }
+            this.hash.put(name, symbolTable.size() - 1);
         }
-        this.hash.put(name, symbolTable.size()-1);// 保存变量的最新地址
+        return this.symbolTable.peek();
     }
 
     // 添加一个函数
