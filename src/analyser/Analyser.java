@@ -1128,19 +1128,29 @@ public final class Analyser {
     private SymbolType analyseExpr(boolean globalflag) throws CompileError 
     {
         // negate_expr -> '-' expr
-        if (peek().getTokenType() == TokenType.MINUS) {
+        if (peek().getTokenType() == TokenType.MINUS) 
+        {
             expect(TokenType.MINUS);
             SymbolType e = analyseExpr(globalflag);
-            if (e == SymbolType.Int) {
-                if (globalflag == true) {
+            if (e == SymbolType.Int) 
+            {
+                if (globalflag == true) 
+                {
                     start.add(new Instruction(Operation.negi));
-                } else {
+                } 
+                else 
+                {
                     instructions.add(new Instruction(Operation.negi));
                 }
-            } else if (e == SymbolType.Double) {
-                if (globalflag == true) {
+            } 
+            else if (e == SymbolType.Double) 
+            {
+                if (globalflag == true) 
+                {
                     start.add(new Instruction(Operation.negf));
-                } else {
+                } 
+                else 
+                {
                     instructions.add(new Instruction(Operation.negf));
                 }
             }
