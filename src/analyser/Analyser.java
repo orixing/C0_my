@@ -217,138 +217,227 @@ public final class Analyser {
             { true, true, true, true, true, true, true, true, true, true, true } };// as
 
     private void huisu(Stack<TokenType> symbols, Stack<SymbolType> Exprs, boolean globalflag) throws CompileError {
-        if (Exprs.size() <= 1) {
+        if (Exprs.size() <= 1) 
+        
+        {
             throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
         }
         SymbolType type2 = Exprs.pop();
         SymbolType type1 = Exprs.peek();
         TokenType symboltype = symbols.pop();
-        if (symboltype == TokenType.AS_KW) {
-            if (type1 == SymbolType.Void || type2 == SymbolType.Void) {
+        if (symboltype == TokenType.AS_KW) 
+        {
+            if (type1 == SymbolType.Void || type2 == SymbolType.Void) 
+            {
                 throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
-            } else {
-                if (type1 == SymbolType.Int && type2 == SymbolType.Double) {
+            }
+            else
+            {
+                if (type1 == SymbolType.Int && type2 == SymbolType.Double)
+                {
                     type1 = SymbolType.Double;
-                    if (globalflag == true) {
+                    if (globalflag == true) 
+                    {
                         start.add(new Instruction(Operation.itof));
-                    } else {
+                    } 
+                    else 
+                    {
                         instructions.add(new Instruction(Operation.itof));
                     }
-                } else if (type1 == SymbolType.Double && type2 == SymbolType.Int) {
+                } 
+                else if (type1 == SymbolType.Double && type2 == SymbolType.Int) 
+                {
                     type1 = SymbolType.Int;
-                    if (globalflag == true) {
+                    if (globalflag == true) 
+                    {
                         start.add(new Instruction(Operation.ftoi));
-                    } else {
+                    } 
+                    else 
+                    {
                         instructions.add(new Instruction(Operation.ftoi));
                     }
                 }
             }
-        } else {
-            if (type1 != type2) {
+        } 
+        else 
+        {
+            if (type1 != type2) 
+            {
                 throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
             }
-            if (symboltype == TokenType.GT) {
-                if (type1 == SymbolType.Int) {
+            if (symboltype == TokenType.GT) 
+            {
+                if (type1 == SymbolType.Int) 
+                {
                     instructions.add(new Instruction(Operation.cmpi));
-                } else {
+                } 
+                else 
+                {
                     instructions.add(new Instruction(Operation.cmpf));
                 }
                 instructions.add(new Instruction(Operation.setgt));
                 type1 = SymbolType.Int;
-            } else if (symboltype == TokenType.LT) {
-                if (type1 == SymbolType.Int) {
+            } 
+            else if (symboltype == TokenType.LT) 
+            {
+                if (type1 == SymbolType.Int) 
+                {
                     instructions.add(new Instruction(Operation.cmpi));
-                } else {
+                } 
+                else 
+                {
                     instructions.add(new Instruction(Operation.cmpf));
                 }
                 instructions.add(new Instruction(Operation.setlt));
                 type1 = SymbolType.Int;
-            } else if (symboltype == TokenType.GE) {
-                if (type1 == SymbolType.Int) {
+            } 
+            else if (symboltype == TokenType.GE) 
+            {
+                if (type1 == SymbolType.Int) 
+                {
                     instructions.add(new Instruction(Operation.cmpi));
-                } else {
+                } 
+                else 
+                {
                     instructions.add(new Instruction(Operation.cmpf));
                 }
                 instructions.add(new Instruction(Operation.setlt));
                 instructions.add(new Instruction(Operation.not));
                 type1 = SymbolType.Int;
-            } else if (symboltype == TokenType.LE) {
-                if (type1 == SymbolType.Int) {
+            } 
+            else if (symboltype == TokenType.LE) 
+            {
+                if (type1 == SymbolType.Int)
+                {
                     instructions.add(new Instruction(Operation.cmpi));
-                } else {
+                } 
+                else 
+                {
                     instructions.add(new Instruction(Operation.cmpf));
                 }
                 instructions.add(new Instruction(Operation.setgt));
                 instructions.add(new Instruction(Operation.not));
                 type1 = SymbolType.Int;
-            } else if (symboltype == TokenType.EQ) {
-                if (type1 == SymbolType.Int) {
+            } 
+            else if (symboltype == TokenType.EQ) 
+            {
+                if (type1 == SymbolType.Int) 
+                {
                     instructions.add(new Instruction(Operation.cmpi));
-                } else {
+                } 
+                else 
+                {
                     instructions.add(new Instruction(Operation.cmpf));
                 }
                 instructions.add(new Instruction(Operation.not));
                 type1 = SymbolType.Int;
-            } else if (symboltype == TokenType.NEQ) {
-                if (type1 == SymbolType.Int) {
+            } 
+            else if (symboltype == TokenType.NEQ) 
+            {
+                if (type1 == SymbolType.Int) 
+                {
                     instructions.add(new Instruction(Operation.cmpi));
-                } else {
+                } 
+                else 
+                {
                     instructions.add(new Instruction(Operation.cmpf));
                 }
                 type1 = SymbolType.Int;
-            } else if (symboltype == TokenType.PLUS) {
-                if (globalflag == true) {
+            } 
+            else if (symboltype == TokenType.PLUS) 
+            {
+                if (globalflag == true) 
+                {
                     if (type1 == SymbolType.Int) {
                         start.add(new Instruction(Operation.addi));
-                    } else {
+                    } 
+                    else 
+                    {
                         start.add(new Instruction(Operation.addf));
                     }
-                } else {
-                    if (type1 == SymbolType.Int) {
+                } 
+                else 
+                {
+                    if (type1 == SymbolType.Int) 
+                    {
                         instructions.add(new Instruction(Operation.addi));
-                    } else {
+                    } 
+                    else {
                         instructions.add(new Instruction(Operation.addf));
                     }
                 }
-            } else if (symboltype == TokenType.MINUS) {
-                if (globalflag == true) {
-                    if (type1 == SymbolType.Int) {
+            } 
+            else if (symboltype == TokenType.MINUS) 
+            {
+                if (globalflag == true) 
+                {
+                    if (type1 == SymbolType.Int) 
+                    {
                         start.add(new Instruction(Operation.subi));
-                    } else {
+                    } 
+                    else 
+                    {
                         start.add(new Instruction(Operation.subf));
                     }
-                } else {
-                    if (type1 == SymbolType.Int) {
+                } 
+                else 
+                {
+                    if (type1 == SymbolType.Int) 
+                    {
                         instructions.add(new Instruction(Operation.subi));
-                    } else {
+                    } 
+                    else 
+                    {
                         instructions.add(new Instruction(Operation.subf));
                     }
                 }
-            } else if (symboltype == TokenType.MUL) {
-                if (globalflag == true) {
-                    if (type1 == SymbolType.Int) {
+            } 
+            else if (symboltype == TokenType.MUL) 
+            {
+                if (globalflag == true) 
+                {
+                    if (type1 == SymbolType.Int) 
+                    {
                         start.add(new Instruction(Operation.muli));
-                    } else {
+                    } 
+                    else 
+                    {
                         start.add(new Instruction(Operation.mulf));
                     }
-                } else {
-                    if (type1 == SymbolType.Int) {
+                } 
+                else 
+                {
+                    if (type1 == SymbolType.Int) 
+                    {
                         instructions.add(new Instruction(Operation.muli));
-                    } else {
+                    } 
+                    else 
+                    {
                         instructions.add(new Instruction(Operation.mulf));
                     }
                 }
-            } else if (symboltype == TokenType.DIV) {
-                if (globalflag == true) {
-                    if (type1 == SymbolType.Int) {
+            } 
+            else if (symboltype == TokenType.DIV) 
+            {
+                if (globalflag == true) 
+                {
+                    if (type1 == SymbolType.Int) 
+                    {
                         start.add(new Instruction(Operation.divi));
-                    } else {
+                    } 
+                    else 
+                    {
                         start.add(new Instruction(Operation.divf));
                     }
-                } else {
-                    if (type1 == SymbolType.Int) {
+                } 
+                else 
+                {
+                    if (type1 == SymbolType.Int) 
+                    {
                         instructions.add(new Instruction(Operation.divi));
-                    } else {
+                    } 
+                    else 
+                    {
                         instructions.add(new Instruction(Operation.divf));
                     }
                 }
@@ -855,7 +944,7 @@ public final class Analyser {
             brToEnds.add(instructions.size());
             // 添加跳转并为之前的跳转添加参数
             instructions.add(new Instruction(Operation.br));
-            ((Instruction) instructions.get(jpaddr)).x = instructions.size() - jpaddr - 1;
+            instructions.get(jpaddr).x = instructions.size() - jpaddr - 1;
             while (peek().getTokenType() == TokenType.ELSE_KW) {
                 expect(TokenType.ELSE_KW);
                 // 如果是最后的else
@@ -879,7 +968,7 @@ public final class Analyser {
                     breakcontinueflag = breakcontinueflag & flags[1];
                     brToEnds.add(instructions.size());
                     instructions.add(new Instruction(Operation.br));
-                    ((Instruction) instructions.get(jpaddr)).x = instructions.size() - jpaddr - 1;
+                    instructions.get(jpaddr).x = instructions.size() - jpaddr - 1;
                 }
             }
             if (elseflag != true) // 如果没有else就代表之后的函数一定要有return
@@ -888,7 +977,7 @@ public final class Analyser {
                 breakcontinueflag = false;
             }
             for (int i : brToEnds) {
-                ((Instruction) instructions.get(i)).x = instructions.size() - 1 - i;
+                instructions.get(i).x = instructions.size() - 1 - i;
             }
             boolean[] return_ = new boolean[] { returnflag, breakcontinueflag };
             return return_;
@@ -900,27 +989,30 @@ public final class Analyser {
             ArrayList<Integer> thisbreakaddrs = new ArrayList<>();
             analysebasicexpr(false);
             instructions.add(new Instruction(Operation.brtrue, 1));
+            int jpaddr = instructions.size();
             instructions.add(new Instruction(Operation.br));
-            int jpaddr = instructions.size() - 1;
             boolean[] b = analyseBlock_stmt(false, true, returntype, thisloopaddr, thisbreakaddrs);
-            if (b[1] == false) {
+            if (b[1] == false) 
+            {
                 Instruction I = new Instruction(Operation.br, thisloopaddr - instructions.size());
                 instructions.add(I);
             }
             ((Instruction) instructions.get(jpaddr)).x = instructions.size() - 1 - jpaddr;
-            for (Integer breakaddr : thisbreakaddrs) {
-                ((Instruction) instructions.get(breakaddr)).x = instructions.size() - 1 - breakaddr;
+            for (Integer breakaddr : thisbreakaddrs) 
+            {
+                instructions.get(breakaddr).x = instructions.size() - 1 - breakaddr;
             }
         }
         // break_stmt -> 'break' ';'
         else if (peek().getTokenType() == TokenType.BREAK_KW) {
             expect(TokenType.BREAK_KW);
             expect(TokenType.SEMICOLON);
-            if (isloop == false) {
+            if (isloop == false) 
+            {
                 throw new AnalyzeError(ErrorCode.AssignToConstant, new Pos(0, 0));
             }
+            breakaddrs.add(instructions.size());
             instructions.add(new Instruction(Operation.br));
-            breakaddrs.add(instructions.size() - 1);
             boolean[] b = { false, true };
             return b;
         }
@@ -928,7 +1020,8 @@ public final class Analyser {
         else if (peek().getTokenType() == TokenType.CONTINUE_KW) {
             expect(TokenType.CONTINUE_KW);
             expect(TokenType.SEMICOLON);
-            if (isloop == false) {
+            if (isloop == false) 
+            {
                 throw new AnalyzeError(ErrorCode.AssignToConstant, new Pos(0, 0));
             }
             instructions.add(new Instruction(Operation.br, loopaddr - instructions.size()));
@@ -942,13 +1035,14 @@ public final class Analyser {
                 instructions.add(new Instruction(Operation.arga, 0));
             }
             SymbolType t = SymbolType.Void;
-            if (peek().getTokenType() != TokenType.SEMICOLON) {
+            if (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT_LITERAL) || check(TokenType.DOUBLE_LITERAL) ||
+            check(TokenType.STRING_LITERAL) || check(TokenType.CHAR_LITERAL) || check(TokenType.L_PAREN)) {
                 t = analysebasicexpr(false);
             }
             if (t != returntype) {
                 throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
             }
-            if (returntype != SymbolType.Void) {
+            if (t != SymbolType.Void) {
                 instructions.add(new Instruction(Operation.store64));
             }
             instructions.add(new Instruction(Operation.ret));
@@ -983,7 +1077,8 @@ public final class Analyser {
     private SymbolType analysebasicexpr(boolean globalflag) throws CompileError {
         Stack<TokenType> symbolStack = new Stack<>();
         Stack<SymbolType> exprStack = new Stack<>();
-        if (symbolStack.empty()) {
+        if (symbolStack.empty()==true) 
+        {
             symbolStack.push(TokenType.EOF);
             exprStack.push(analyseExpr(globalflag));
         }
@@ -991,12 +1086,16 @@ public final class Analyser {
             TokenType nextt = peek().getTokenType();
             int x = options.indexOf(symbolStack.peek());
             int y = options.indexOf(nextt);
-            if (x == -1 && y == -1) {
+            if (x == -1 && y == -1) 
+            {
                 break;
-            } else if (x == -1 || y != -1 && map[x][y] == false) {
+            } 
+            else if (x == -1 || y != -1 && map[x][y] == false) 
+            {
                 symbolStack.push(nextt);
                 next();
-                if (nextt == TokenType.AS_KW) {
+                if (nextt == TokenType.AS_KW) 
+                {
                     SymbolType type;
                     if (peek().getTokenType() == TokenType.INT_KW) {
                         next();
@@ -1011,18 +1110,23 @@ public final class Analyser {
                         throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
                     }
                     exprStack.push(type);
-                } else {
+                } 
+                else 
+                {
                     exprStack.push(analyseExpr(globalflag));
                 }
 
-            } else if (y == -1 || map[x][y] == true) {
+            } 
+            else if (y == -1 || map[x][y] == true) 
+            {
                 huisu(symbolStack, exprStack, globalflag);
             }
         }
         return exprStack.peek();
     }
 
-    private SymbolType analyseExpr(boolean globalflag) throws CompileError {
+    private SymbolType analyseExpr(boolean globalflag) throws CompileError 
+    {
         // negate_expr -> '-' expr
         if (peek().getTokenType() == TokenType.MINUS) {
             expect(TokenType.MINUS);
@@ -1043,36 +1147,52 @@ public final class Analyser {
             return e;
         }
         // literal_expr -> UINT_LITERAL | DOUBLE_LITERAL | STRING_LITERAL | CHAR_LITERAL
-        else if (peek().getTokenType() == TokenType.UINT_LITERAL) {
+        else if (peek().getTokenType() == TokenType.UINT_LITERAL) 
+        {
             Token token = expect(TokenType.UINT_LITERAL);
-            if (globalflag == true) {
+            if (globalflag == true) 
+            {
                 start.add(new Instruction(Operation.push, Integer.getInteger(token.getValue().toString())));
-            } else {
+            } 
+            else 
+            {
                 instructions.add(new Instruction(Operation.push, Integer.getInteger(token.getValue().toString())));
             }
             return SymbolType.Int;
-        } else if (peek().getTokenType() == TokenType.DOUBLE_LITERAL) {
+        } 
+        else if (peek().getTokenType() == TokenType.DOUBLE_LITERAL) 
+        {
             Token token = expect(TokenType.DOUBLE_LITERAL);
-            if (globalflag == true) {
+            if (globalflag == true) 
+            {
                 start.add(new Instruction(Operation.push, Double.doubleToRawLongBits((double) token.getValue())));
-            } else {
-                instructions
-                        .add(new Instruction(Operation.push, Double.doubleToRawLongBits((double) token.getValue())));
+            } 
+            else 
+            {
+                instructions.add(new Instruction(Operation.push, Double.doubleToRawLongBits((double) token.getValue())));
             }
             return SymbolType.Double;
-        } else if (peek().getTokenType() == TokenType.STRING_LITERAL) {
+        } else if (peek().getTokenType() == TokenType.STRING_LITERAL) 
+        {
             Token token = expect(TokenType.STRING_LITERAL);
-            if (globalflag == true) {
+            if (globalflag == true) 
+            {
                 start.add(new Instruction(Operation.push, (long) globalOffset++));
-            } else {
+            } 
+            else 
+            {
                 instructions.add(new Instruction(Operation.push, (long) globalOffset++));
             }
             return SymbolType.Int;
-        } else if (peek().getTokenType() == TokenType.CHAR_LITERAL) {
+        } else if (peek().getTokenType() == TokenType.CHAR_LITERAL) 
+        {
             Token token = expect(TokenType.CHAR_LITERAL);
-            if (globalflag == true) {
+            if (globalflag == true) 
+            {
                 start.add(new Instruction(Operation.push, (int) (char) token.getValue()));
-            } else {
+            } 
+            else 
+            {
                 instructions.add(new Instruction(Operation.push, (int) (char) token.getValue()));
             }
             return SymbolType.Int;
@@ -1082,31 +1202,42 @@ public final class Analyser {
         // call_expr -> IDENT '(' call_param_list? ')'
         // call_param_list -> expr (',' expr)*
         // ident_expr -> IDENT
-        else if (peek().getTokenType() == TokenType.IDENT) {
+        else if (peek().getTokenType() == TokenType.IDENT) 
+        {
             Token token = expect(TokenType.IDENT);
             Integer addr = this.hash.get(token.getValueString());
             SymbolEntry s = null;
-            if (addr != null) {
+            if (addr != null) 
+            {
                 s = this.symbolTable.get(addr);
             }
             // assign_expr -> l_expr '=' expr
             // l_expr -> IDENT
-            if (peek().getTokenType() == TokenType.ASSIGN) {
+            if (peek().getTokenType() == TokenType.ASSIGN) 
+            {
                 expect(TokenType.ASSIGN);
-                if (s == null) {
+                if (s == null) 
+                {
                     throw new AnalyzeError(ErrorCode.NotDeclared, token.getStartPos());
                 }
-                if (s.symbolRange == SymbolRange.Global) {
+                if (s.symbolRange == SymbolRange.Global) 
+                {
                     instructions.add(new Instruction(Operation.globa, s.stackoffset));
-                } else if (s.symbolRange == SymbolRange.Local) {
+                } 
+                else if (s.symbolRange == SymbolRange.Local) 
+                {
                     instructions.add(new Instruction(Operation.loca, s.stackoffset));
-                } else if (s.symbolRange == SymbolRange.Param) {
+                } 
+                else if (s.symbolRange == SymbolRange.Param) 
+                {
                     instructions.add(new Instruction(Operation.arga, s.stackoffset));
                 }
-                if (analysebasicexpr(false) != s.symbolType) {
+                SymbolType t=analysebasicexpr(false);
+                declareSymbol(token.getValueString(), token.getStartPos());
+                if (t!=s.symbolType) 
+                {
                     throw new AnalyzeError(ErrorCode.InvalidAssignment, new Pos(0, 0));
                 }
-                declareSymbol(token.getValueString(), token.getStartPos());
                 instructions.add(new Instruction(Operation.store64));
                 return SymbolType.Void;
             }
@@ -1120,53 +1251,78 @@ public final class Analyser {
                 expect(TokenType.L_PAREN);
                 int funcOffset = -1;
                 ArrayList<SymbolType> params;
-                SymbolType returntype = SymbolType.Void;
-                if (s != null) {
+                SymbolType returntype;
+                if (s != null) 
+                {
                     params = s.params;
                     returntype = s.symbolType;
-                } else {
-                    if (token.getValueString().equals("getint") || token.getValueString().equals("getchar")) {
+                } 
+                else 
+                {
+                    if (token.getValueString().equals("getint") || token.getValueString().equals("getchar")) 
+                    {
                         params = new ArrayList<>();
                         returntype = SymbolType.Int;
-                    } else if (token.getValueString().equals("getdouble")) {
+                    } 
+                    else if (token.getValueString().equals("getdouble")) 
+                    {
                         params = new ArrayList<>();
                         returntype = SymbolType.Double;
-                    } else if (token.getValueString().equals("putchar") || token.getValueString().equals("putint")
-                            || token.getValueString().equals("putstr")) {
-                        System.out.println("inif" + token.getValueString());
-                        params = new ArrayList<SymbolType>() {
+                    } 
+                    else if (token.getValueString().equals("putchar") || token.getValueString().equals("putint")
+                            || token.getValueString().equals("putstr")) 
+                    {
+                        returntype = SymbolType.Void;
+                        params = new ArrayList<SymbolType>() 
+                        {
                             {
                                 add(SymbolType.Int);
                             }
                         };
+                    } 
+                    else if (token.getValueString().equals("putdouble")) 
+                    {
                         returntype = SymbolType.Void;
-                    } else if (token.getValueString().equals("putdouble")) {
-                        params = new ArrayList<SymbolType>() {
+                        params = new ArrayList<SymbolType>() 
+                        {
                             {
                                 add(SymbolType.Double);
                             }
                         };
-                        returntype = SymbolType.Void;
-                    } else if (token.getValueString().equals("putln")) {
+                       
+                    } 
+                    else if (token.getValueString().equals("putln")) 
+                    {
                         params = new ArrayList<SymbolType>();
                         returntype = SymbolType.Void;
-                    } else {
+                    } 
+                    else 
+                    {
                         System.out.println(token.getValueString());
                         throw new AnalyzeError(ErrorCode.InvalidAssignment, new Pos(0, 0));
                     }
-                    funcOffset = globalOffset++;
                     Globals.add(token.getValueString());
+                    funcOffset = globalOffset++;
                 }
-                if (returntype == SymbolType.Void) {
-                    if (globalflag == true) {
+                if (returntype == SymbolType.Void) 
+                {
+                    if (globalflag == true) 
+                    {
                         start.add(new Instruction(Operation.stackalloc, 0));
-                    } else {
+                    } 
+                    else 
+                    {
                         instructions.add(new Instruction(Operation.stackalloc, 0));
                     }
-                } else {
-                    if (globalflag == true) {
+                } 
+                else 
+                {
+                    if (globalflag == true) 
+                    {
                         start.add(new Instruction(Operation.stackalloc, 1));
-                    } else {
+                    } 
+                    else 
+                    {
                         instructions.add(new Instruction(Operation.stackalloc, 1));
                     }
                 }
@@ -1177,51 +1333,82 @@ public final class Analyser {
                         || peek().getTokenType() == TokenType.DOUBLE_LITERAL
                         || peek().getTokenType() == TokenType.STRING_LITERAL
                         || peek().getTokenType() == TokenType.CHAR_LITERAL
-                        || peek().getTokenType() == TokenType.L_PAREN) {
+                        || peek().getTokenType() == TokenType.L_PAREN) 
+                {
                     SymbolType type = analysebasicexpr(globalflag);
-                    while (nextIf(TokenType.COMMA) != null) {
+                    if (i + 1 > paramnum || type != params.get(i++)) 
+                    {
+                        throw new AnalyzeError(ErrorCode.InvalidAssignment, new Pos(paramnum, 0));
+                    }
+                    while (nextIf(TokenType.COMMA) != null) 
+                    {
                         type = analysebasicexpr(globalflag);
-                        if (i + 1 > paramnum || type != params.get(i++)) {
+                        if (i + 1 > paramnum || type != params.get(i++)) 
+                        {
                             throw new AnalyzeError(ErrorCode.InvalidAssignment, new Pos(paramnum, 0));
                         }
                     }
 
                 }
                 expect(TokenType.R_PAREN);
-                if (s != null) {
-                    if (globalflag == true) {
+                if (s != null) 
+                {
+                    if (globalflag == true) 
+                    {
                         start.add(new Instruction(Operation.call, s.funcOffset));
-                    } else {
+                    } 
+                    else 
+                    {
                         instructions.add(new Instruction(Operation.call, s.funcOffset));
                     }
-                } else {
-                    if (globalflag == true) {
-                        start.add(new Instruction(Operation.call, funcOffset));
-                    } else {
-                        instructions.add(new Instruction(Operation.call, funcOffset));
+                } 
+                else 
+                {
+                    if (globalflag == true) 
+                    {
+                        start.add(new Instruction(Operation.callname, funcOffset));
+                    } 
+                    else 
+                    {
+                        instructions.add(new Instruction(Operation.callname, funcOffset));
                     }
                 }
             }
             // ident_expr -> IDENT
-            else {
-                if (s == null) {
+            else 
+            {
+                if (s == null) 
+                {
                     throw new AnalyzeError(ErrorCode.InvalidIdentifier, new Pos(0, 0));
                 }
-                if (globalflag == true) {
-                    if (s.symbolRange == SymbolRange.Global) {
+                if (globalflag == true)
+                {
+                    if (s.symbolRange == SymbolRange.Global) 
+                    {
                         start.add(new Instruction(Operation.globa, s.stackoffset));
-                    } else if (s.symbolRange == SymbolRange.Local) {
+                    } 
+                    else if (s.symbolRange == SymbolRange.Local) 
+                    {
                         start.add(new Instruction(Operation.loca, s.stackoffset));
-                    } else if (s.symbolRange == SymbolRange.Param) {
+                    } 
+                    else if (s.symbolRange == SymbolRange.Param) 
+                    {
                         start.add(new Instruction(Operation.arga, s.stackoffset));
                     }
                     start.add(new Instruction(Operation.load64));
-                } else {
-                    if (s.symbolRange == SymbolRange.Global) {
+                } 
+                else 
+                {
+                    if (s.symbolRange == SymbolRange.Global) 
+                    {
                         instructions.add(new Instruction(Operation.globa, s.stackoffset));
-                    } else if (s.symbolRange == SymbolRange.Local) {
+                    } 
+                    else if (s.symbolRange == SymbolRange.Local) 
+                    {
                         instructions.add(new Instruction(Operation.loca, s.stackoffset));
-                    } else if (s.symbolRange == SymbolRange.Param) {
+                    } 
+                    else if (s.symbolRange == SymbolRange.Param) 
+                    {
                         instructions.add(new Instruction(Operation.arga, s.stackoffset));
                     }
                     instructions.add(new Instruction(Operation.load64));
@@ -1231,12 +1418,14 @@ public final class Analyser {
         }
 
         // group_expr -> '(' expr ')'
-        else if (peek().getTokenType() == TokenType.L_PAREN) {
+        else if (peek().getTokenType() == TokenType.L_PAREN) 
+        {
             expect(TokenType.L_PAREN);
             SymbolType s = analysebasicexpr(globalflag);
             expect(TokenType.R_PAREN);
             return s;
-        } else {
+        } else 
+        {
             throw new ExpectedTokenError(peek().getTokenType(), peek());
         }
         // operator_expr -> expr binary_operator expr
