@@ -408,7 +408,7 @@ public final class Analyser {
                 throw new AnalyzeError(ErrorCode.InvalidIdentifier, curPos);
             }
         }
-        this.hash.put(name, symbolTable.size() - 1);// 保存变量的最新地址
+        this.hash.put(name, symbolTable.size()-1);// 保存变量的最新地址
     }
 
     // 添加一个函数
@@ -560,9 +560,12 @@ public final class Analyser {
         }
         s.symbolType = type;
         func.paramnum = paramOffset;
-        if (type == SymbolType.Void) {
+        if (type == SymbolType.Void) 
+        {
             func.returnum = 0;
-        } else {
+        } 
+        else 
+        {
             func.returnum = 1;
             int size = symbolTable.size() - 1;
             for (int i = 0; i < paramOffset; i++) {
@@ -574,10 +577,14 @@ public final class Analyser {
         boolean[] b = analyseBlock_stmt(true, false, type, 0, null);
         boolean returnflag = b[0];
         boolean breakcontinueflag = b[1];
-        if (returnflag == false) {
-            if (type != SymbolType.Void) {
+        if (returnflag == false)
+        {
+            if (type != SymbolType.Void) 
+            {
                 throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
-            } else {
+            }
+            else
+            {
                 instructions.add(new Instruction(Operation.ret));
             }
         }
@@ -619,12 +626,14 @@ public final class Analyser {
         } else {
             throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
         }
-        params.add(type);
         addSymbol(name.getValueString(), constflag, true, type, SymbolRange.Param, name.getStartPos());
+        params.add(type);
+
     }
 
     /**
-     * let_decl_stmt -> 'let' IDENT ':' ty ('=' expr)? ';' const_decl_stmt ->
+     * let_decl_stmt ->
+     *  'let' IDENT ':' ty ('=' expr)? ';' const_decl_stmt ->
      * 'const' IDENT ':' ty '=' expr ';' decl_stmt -> let_decl_stmt |
      * const_decl_stmt
      */
@@ -635,7 +644,7 @@ public final class Analyser {
             analyseConst_decl_stmt(range);
         } else {
             throw new ExpectedTokenError(peek().getTokenType(), peek());
-        }
+        } 
     }
 
     /**
@@ -651,7 +660,7 @@ public final class Analyser {
         }
         Token NAME = expect(TokenType.IDENT);// 变量名
         expect(TokenType.COLON);
-        SymbolType type = SymbolType.Void;
+        SymbolType type;
         if (peek().getTokenType() == TokenType.INT_KW) {
             next();
             type = SymbolType.Int;
@@ -665,13 +674,18 @@ public final class Analyser {
             throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
         } // 变量类型
         if (type == SymbolType.Void)
+        {
             throw new AnalyzeError(ErrorCode.InvalidIdentifier, NAME.getStartPos());
+        }
         addSymbol(NAME.getValueString(), false, false, type, range, NAME.getStartPos());
         SymbolEntry thissymbol = symbolTable.peek();
         if (peek().getTokenType() == TokenType.ASSIGN) {
-            if (globalflag == true) {
+            if (globalflag == true) 
+            {
                 start.add(new Instruction(Operation.globa, thissymbol.stackoffset));
-            } else {
+            } 
+            else 
+            {
                 instructions.add(new Instruction(Operation.loca, thissymbol.stackoffset));
             }
             expect(TokenType.ASSIGN);
@@ -679,9 +693,11 @@ public final class Analyser {
             if (type != t)
                 throw new AnalyzeError(ErrorCode.InvalidIdentifier, new Pos(0, 0));
             declareSymbol(NAME.getValueString(), NAME.getStartPos());
-            if (globalflag == true) {
+            if (globalflag == true) 
+            {
                 start.add(new Instruction(Operation.store64));
-            } else {
+            } else 
+            {
                 instructions.add(new Instruction(Operation.store64));
             }
         }
@@ -717,7 +733,6 @@ public final class Analyser {
         // 变量类型
         if (type == SymbolType.Void) {
             throw new AnalyzeError(ErrorCode.InvalidIdentifier, NAME.getStartPos());
-
         }
         addSymbol(NAME.getValueString(), false, false, type, range, NAME.getStartPos());
         SymbolEntry thissymbol = symbolTable.peek();
@@ -752,19 +767,22 @@ public final class Analyser {
         if (isFunction == false) {
             this.index.push(this.symbolTable.size());
         }
-        while (peek().getTokenType() != TokenType.R_BRACE) {
+        while (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT_LITERAL) || check(TokenType.DOUBLE_LITERAL) || check(TokenType.STRING_LITERAL) || check(TokenType.CHAR_LITERAL) || check(TokenType.L_PAREN) || check(TokenType.LET_KW) ||
+        check(TokenType.CONST_KW) || check(TokenType.IF_KW) || check(TokenType.WHILE_KW) || check(TokenType.BREAK_KW) || check(TokenType.CONTINUE_KW) || check(TokenType.RETURN_KW) || check(TokenType.SEMICOLON) || check(TokenType.L_BRACE)) {
             if (returnflag == false && breakcontinueflag == false) {
                 boolean[] b = analyseStmt(isloop, returntype, loopaddr, breakaddrs);
                 returnflag = b[0];
                 breakcontinueflag = b[1];
             } else if (returnflag == false && breakcontinueflag == true) {
-                if (breakcontinuelen == 0) {
+                if (breakcontinuelen == 0) 
+                {
                     breakcontinuelen = instructions.size();
                 }
                 boolean[] b = analyseStmt(isloop, returntype, loopaddr, breakaddrs);
                 returnflag = b[0];
             } else if (returnflag == true && breakcontinueflag == false) {
-                if (returnlen == 0) {
+                if (returnlen == 0) 
+                {
                     returnlen = instructions.size();
                 }
                 boolean[] b = analyseStmt(isloop, returntype, loopaddr, breakaddrs);
@@ -772,7 +790,8 @@ public final class Analyser {
             } else if (returnflag == true && breakcontinueflag == true) {
                 if (returnlen == 0) {
                     returnlen = instructions.size();
-                } else if (breakcontinuelen == 0) {
+                }
+                if (breakcontinuelen == 0) {
                     breakcontinuelen = instructions.size();
                 }
                 boolean[] b = analyseStmt(isloop, returntype, loopaddr, breakaddrs);
@@ -780,11 +799,14 @@ public final class Analyser {
         }
         expect(TokenType.R_BRACE);
         if (returnlen > 0)
+        {
             instructions.subList(returnlen, instructions.size()).clear();
+        }
         if (breakcontinuelen > 0)
+        {
             instructions.subList(breakcontinuelen, instructions.size()).clear();
+        }
         int endIndex = index.pop();
-        boolean[] b = { returnflag, breakcontinueflag };
         for (int i = symbolTable.size(); i > endIndex; i--) {
             SymbolEntry tmp = symbolTable.pop();
             if (tmp.lastaddr != -1) {
@@ -793,7 +815,12 @@ public final class Analyser {
                 hash.remove(tmp.name);
             }
         }
+        if (isFunction)
+        {
+            paramOffset = 0;
+        }
         paramOffset = 0;
+        boolean[] b = { returnflag, breakcontinueflag };
         return b;
     }
 
