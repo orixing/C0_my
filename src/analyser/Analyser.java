@@ -490,7 +490,7 @@ public final class Analyser {
                     case Local:
                         this.symbolTable.push(new SymbolEntry(name, isConstant, isInitialized, symbolType, range, localOffset++));
                         break;
-                }s
+                }
             }
             this.hash.put(name, symbolTable.size() - 1);
         }
