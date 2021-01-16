@@ -60,7 +60,7 @@ public final class Analyser {
         this.Globals = new ArrayList<>();
     }
 
-    public void analyse(File args) throws CompileError, IOException {
+    public void analyse(FileOutputStream args) throws CompileError, IOException {
         analyseProgram();
         for (String i : Globals) {
             System.out.println(i);
@@ -1303,45 +1303,44 @@ public final class Analyser {
         return t;
     }
 
-    public void output(File output) throws IOException {
-        FileOutputStream out = new FileOutputStream(output);
-        printint(0x72303b3e);
-        printint(1);
-        printint(Globals.size());
+    public void output(FileOutputStream out) throws IOException {
+        printint(out,0x72303b3e);
+        printint(out,1);
+        printint(out,Globals.size());
         for (String global : Globals) {
             if (global == "0") {
                 out.write(0);
-                printint(8);
-                printlong(0L);
+                printint(out,8);
+                printlong(out,0L);
             } else if (global == "1") {
                 out.write(1);
-                printint(8);
-                printlong(0L);
+                printint(out,8);
+                printlong(out,0L);
             } else {
                 out.write(1);
-                printint(global.length());
+                printint(out,global.length());
                 out.write(global.getBytes());
             }
         }
         funcs.add(start);
         cutFunction(instructions);
-        printint(funcs.size());
+        printint(out,funcs.size());
         for (ArrayList<Instruction> funcins : funcs) {
             for (Instruction ain : funcins) {
                 if (ain.opt==Operation.func) {
                     FunctionEntry afunc = (FunctionEntry) ain;
-                    printint(afunc.offset);
-                    printint(afunc.returnum);
-                    printint(afunc.paramnum);
-                    printint(afunc.localnum);
-                    printint(funcins.size() - 1);
+                    printint(out,afunc.offset);
+                    printint(out,afunc.returnum);
+                    printint(out,afunc.paramnum);
+                    printint(out,afunc.localnum);
+                    printint(out,funcins.size() - 1);
                 } else {
                     out.write(ain.opt.getValue());
                     if (ain.x != null) {
                         if (ain.opt == Operation.push) {
-                            printlong(Long.valueOf(ain.x.toString()));
+                            printlong(out,Long.valueOf(ain.x.toString()));
                         } else {
-                            printint((int) ain.x);
+                            printint(out,(int) ain.x);
                         }
                     }
 
@@ -1351,7 +1350,7 @@ public final class Analyser {
         out.close();
     }
 
-    public static byte[] printlong(long val) {
+    public static void printlong(FileOutputStream out,long val) throws IOException {
         byte[] b = new byte[8];
         b[7] = (byte) (val & 0xff);
         b[6] = (byte) ((val >> 8) & 0xff);
@@ -1361,16 +1360,16 @@ public final class Analyser {
         b[2] = (byte) ((val >> 40) & 0xff);
         b[1] = (byte) ((val >> 48) & 0xff);
         b[0] = (byte) ((val >> 56) & 0xff);
-        return b;
+        out.write(b);
     }
 
-    public static byte[] printint(int val) {
+    public static void printint(FileOutputStream out,int val) throws IOException {
         byte[] b = new byte[4];
         b[3] = (byte) (val & 0xff);
         b[2] = (byte) ((val >> 8) & 0xff);
         b[1] = (byte) ((val >> 16) & 0xff);
         b[0] = (byte) ((val >> 24) & 0xff);
-        return b;
+        out.write(b);
     }
 
     public static void cutFunction(ArrayList<Instruction> instructions) {
