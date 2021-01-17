@@ -199,23 +199,22 @@ public final class Analyser {
     // getNextVariableOffset(),type));
     // }
     // }
-    ArrayList<TokenType> options = new ArrayList<>(
-            Arrays.asList(TokenType.GT, TokenType.LT, TokenType.GE, TokenType.LE, TokenType.EQ, TokenType.NEQ,
-                    TokenType.PLUS, TokenType.MINUS, TokenType.MUL, TokenType.DIV, TokenType.AS_KW));
+    ArrayList<TokenType> terminals = new ArrayList<>(Arrays.asList(TokenType.GT,
+            TokenType.LT, TokenType.GE, TokenType.LE, TokenType.EQ, TokenType.NEQ,
+            TokenType.PLUS, TokenType.MINUS, TokenType.MUL, TokenType.DIV, TokenType.AS_KW));
 
-    public boolean[][] map = {
-            // > < >= <= == != + - * / as
-            { true, true, true, true, true, true, false, false, false, false, false }, // >
-            { true, true, true, true, true, true, false, false, false, false, false }, // <
-            { true, true, true, true, true, true, false, false, false, false, false }, // >=
-            { true, true, true, true, true, true, false, false, false, false, false }, // <=
-            { true, true, true, true, true, true, false, false, false, false, false }, // ==
-            { true, true, true, true, true, true, false, false, false, false, false }, // !=
-            { true, true, true, true, true, true, true, true, false, false, false }, // +
-            { true, true, true, true, true, true, true, true, false, false, false }, // -
-            { true, true, true, true, true, true, true, true, true, true, false }, // *
-            { true, true, true, true, true, true, true, true, true, true, false }, // /
-            { true, true, true, true, true, true, true, true, true, true, true } };// as
+    public int[][] matrix = {
+            {2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1},
+            {2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1},
+            {2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1},
+            {2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1},
+            {2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1},
+            {2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1},
+            {2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1},
+            {2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1},
+            {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1},
+            {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1},
+            {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}};
 
     private void huisu(Stack<TokenType> symbols, Stack<SymbolType> Exprs, boolean globalflag) throws CompileError {
         if (Exprs.size() <= 1) 
@@ -1011,52 +1010,48 @@ public final class Analyser {
     private SymbolType analysebasicexpr(boolean globalflag) throws CompileError {
         Stack<TokenType> symbolStack = new Stack<>();
         Stack<SymbolType> exprStack = new Stack<>();
-        if (symbolStack.empty()==true) 
-        {
+        //因为stack是TokenType类型的，因此用EOF代替OPG的#
+        if (symbolStack.empty()) {
             symbolStack.push(TokenType.EOF);
             exprStack.push(analyseExpr(globalflag));
         }
-        while (symbolStack.empty() == false) {
-            TokenType nextt = peek().getTokenType();
-            int x = options.indexOf(symbolStack.peek());
-            int y = options.indexOf(nextt);
-            if (x == -1 && y == -1) 
-            {
-                break;
-            } 
-            else if (x == -1 || y != -1 && map[x][y] == false) 
-            {
-                symbolStack.push(nextt);
+        while (!symbolStack.empty()) {
+//            if (check(TokenType.PLUS) || check(TokenType.MINUS) || check(TokenType.MUL) || check(TokenType.DIV) ||
+//                    check(TokenType.EQ) || check(TokenType.NEQ) || check(TokenType.LT) || check(TokenType.GT) ||
+//                    check(TokenType.GE) || check(TokenType.LE) || check(TokenType.AS_KW)) {
+            TokenType nextType = peek().getTokenType();
+            int x = terminals.indexOf(symbolStack.peek());
+            int y = terminals.indexOf(nextType);
+            if (x == -1 && y == -1) break;
+            else if (x == -1 || y != -1 && matrix[x][y] == 1) {
+                symbolStack.push(nextType);
                 next();
-                if (nextt == TokenType.AS_KW) 
-                {
-                    SymbolType type;
-                    if (peek().getTokenType() == TokenType.INT_KW) {
-                        next();
-                        type = SymbolType.Int;
-                    } else if (peek().getTokenType() == TokenType.DOUBLE_KW) {
-                        next();
-                        type = SymbolType.Double;
-                    } else if (peek().getTokenType() == TokenType.VOID_KW) {
-                        next();
-                        type = SymbolType.Void;
-                    } else {
-                        throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
-                    }
+                if (nextType == TokenType.AS_KW) {
+                    SymbolType type = analyseType();
                     exprStack.push(type);
-                } 
-                else 
-                {
+                } else
                     exprStack.push(analyseExpr(globalflag));
-                }
 
-            } 
-            else if (y == -1 || map[x][y] == true) 
-            {
+            } else if (y == -1 || matrix[x][y] == 2) {
                 huisu(symbolStack, exprStack, globalflag);
             }
+//            }
         }
         return exprStack.peek();
+    }
+
+    private SymbolType analyseType() throws CompileError {
+        if (nextIf(TokenType.INT_KW) != null)
+            return SymbolType.Int;
+        else if (nextIf(TokenType.DOUBLE_KW) != null)
+            return SymbolType.Double;
+        else if (nextIf(TokenType.VOID_KW) != null)
+            return SymbolType.Void;
+        else {
+            List<TokenType> list = Arrays.asList(TokenType.INT_KW, TokenType.DOUBLE_KW, TokenType.VOID_KW);
+            throw new ExpectedTokenError(list, peek());
+        }
+
     }
 
     private SymbolType analyseExpr(boolean globalflag) throws CompileError 
