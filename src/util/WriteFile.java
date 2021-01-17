@@ -1,6 +1,7 @@
 package util;
 
 import analyser.*;
+import instruction.FunctionInstruction;
 import instruction.Instruction;
 import instruction.Operation;
 
@@ -44,9 +45,9 @@ public class WriteFile {
         for (ArrayList<Instruction> funcInstructions : functions) {
             for (Instruction instruction : funcInstructions) {
                 if (instruction.operation == Operation.func) {
-                    FunctionEntry functionInstruction = (FunctionEntry) instruction;
+                    FunctionInstruction functionInstruction = (FunctionInstruction) instruction;
                     out.write(intToByte(functionInstruction.offset));
-                    out.write(intToByte(functionInstruction.returnum));
+                    out.write(intToByte(functionInstruction.returnnum));
                     out.write(intToByte(functionInstruction.paramnum));
                     out.write(intToByte(functionInstruction.localnum));
                     out.write(intToByte(funcInstructions.size() - 1));

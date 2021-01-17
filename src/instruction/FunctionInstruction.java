@@ -1,20 +1,20 @@
 package instruction;
 
 public class FunctionInstruction extends Instruction{
-    private int localCount;
-    private int returnCount;
-    private int paramCount;
-    private int offset;
+    public int localnum;
+    public int returnnum;
+    public int paramnum;
+    public int offset;
 
     public FunctionInstruction(Operation operation) {
         super(operation);
     }
 
-    public FunctionInstruction(Operation operation, int localCount, int returnCount, int paramCount, int offset) {
+    public FunctionInstruction(Operation operation, int localnum, int returnnum, int paramnum, int offset) {
         super(operation);
-        this.localCount = localCount;
-        this.returnCount = returnCount;
-        this.paramCount = paramCount;
+        this.localnum = localnum;
+        this.returnnum = returnnum;
+        this.paramnum = paramnum;
         this.offset = offset;
     }
 
@@ -26,35 +26,35 @@ public class FunctionInstruction extends Instruction{
         this.offset = offset;
     }
 
-    public int getLocalCount() {
-        return localCount;
+    public int getlocalnum() {
+        return localnum;
     }
 
-    public void setLocalCount(int localCount) {
-        this.localCount = localCount;
+    public void setlocalnum(int localnum) {
+        this.localnum = localnum;
     }
 
-    public int getReturnCount() {
-        return returnCount;
+    public int getreturnnum() {
+        return returnnum;
     }
 
-    public void setReturnCount(int returnCount) {
-        this.returnCount = returnCount;
+    public void setreturnnum(int returnnum) {
+        this.returnnum = returnnum;
     }
 
-    public int getParamCount() {
-        return paramCount;
+    public int getparamnum() {
+        return paramnum;
     }
 
-    public void setParamCount(int paramCount) {
-        this.paramCount = paramCount;
+    public void setparamnum(int paramnum) {
+        this.paramnum = paramnum;
     }
 
     @Override
     public String toString() {
         return  getOperation()+"["+offset+
-                "] " + localCount +
-                " " + paramCount +
-                "->" + returnCount;
+                "] " + localnum +
+                " " + paramnum +
+                "->" + returnnum;
     }
 }
