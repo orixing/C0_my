@@ -786,50 +786,38 @@ public final class Analyser {
      * const_decl_stmt -> 'const' IDENT ':' ty '=' expr ';'
      */
     private void analyseConst_decl_stmt(SymbolRange range) throws CompileError {
+        boolean isGlobal = range == SymbolRange.Global;
         expect(TokenType.CONST_KW);
-        boolean globalflag;
-        if (range == SymbolRange.Global) {
-            globalflag = true;
-        } else {
-            globalflag = false;
-        }
-        Token NAME = expect(TokenType.IDENT);// 变量名
+        Token nameToken = expect(TokenType.IDENT);
         expect(TokenType.COLON);
         SymbolType type;
-        if (peek().getTokenType() == TokenType.INT_KW) {
-            next();
+        if (nextIf(TokenType.INT_KW) != null) {
             type = SymbolType.Int;
-        } else if (peek().getTokenType() == TokenType.DOUBLE_KW) {
-            next();
+        } else if (nextIf(TokenType.DOUBLE_KW) != null){
             type = SymbolType.Double;
-        } else if (peek().getTokenType() == TokenType.VOID_KW) {
-            next();
+        } else if (nextIf(TokenType.VOID_KW) != null) {
             type = SymbolType.Void;
         } else {
             throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
-        }
-        // 变量类型
-        if (type == SymbolType.Void) {
-            throw new AnalyzeError(ErrorCode.InvalidIdentifier, NAME.getStartPos());
-        }
-        addSymbol(NAME.getValueString(), false, false, type, range, NAME.getStartPos());
-        SymbolEntry thissymbol = symbolTable.peek();
+        } // 变量类型
+        if (type == SymbolType.Void)
+            throw new AnalyzeError(ErrorCode.InvalidInput, nameToken.getStartPos());
+        SymbolEntry symbol = addSymbol(nameToken.getValueString(), true, true, type, range, nameToken.getStartPos());
         expect(TokenType.ASSIGN);
-        if (globalflag == true) {
-            start.add(new Instruction(Operation.globa, thissymbol.stackoffset));
-        } else {
-            instructions.add(new Instruction(Operation.loca, thissymbol.stackoffset));
-        }
-        SymbolType t = analysebasicexpr(globalflag);
-        if (type != t) {
-            throw new AnalyzeError(ErrorCode.InvalidIdentifier, new Pos(0, 0));
-        }
-        if (globalflag == true) {
-            start.add(new Instruction(Operation.store64));
-        } else {
-            instructions.add(new Instruction(Operation.store64));
-        }
+
+        if (isGlobal)
+            start.add(new Instruction(Operation.globa, symbol.stackoffset));
+        else
+            instructions.add(new Instruction(Operation.loca, symbol.stackoffset));
+
+        SymbolType t = analysebasicexpr(isGlobal);
+        if (type != t)
+            throw new AnalyzeError(ErrorCode.InvalidInput,new Pos(0,0));
         expect(TokenType.SEMICOLON);
+        if (isGlobal)
+            start.add(new Instruction(Operation.store64));
+        else
+            instructions.add(new Instruction(Operation.store64));
     }
 
     /**
