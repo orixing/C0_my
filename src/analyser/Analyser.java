@@ -875,158 +875,133 @@ public final class Analyser {
      * stmt -> expr_stmt | decl_stmt | if_stmt | while_stmt | break_stmt |
      * continue_stmt | return_stmt | block_stmt | empty_stmt
      */
-    private boolean[] analyseStmt(boolean isloop, SymbolType returntype, int loopaddr, ArrayList<Integer> breakaddrs)
+    private boolean[] analyseStmt(boolean insideWhile, SymbolType returnType, int loopLoc, ArrayList<Integer> breakList)
             throws CompileError {
-        // decl_stmt -> let_decl_stmt | const_decl_stmt
-        if (peek().getTokenType() == TokenType.LET_KW || peek().getTokenType() == TokenType.CONST_KW) {
-            analyseDecl_stmt(SymbolRange.Local);
-        }
-        // if_stmt -> 'if' expr block_stmt ('else' 'if' expr block_stmt)* ('else'
-        // block_stmt)?
-        else if (peek().getTokenType() == TokenType.IF_KW) {
-            expect(TokenType.IF_KW);
-            SymbolType type = analysebasicexpr(false);
-            if (type == SymbolType.Void) {
-                throw new AnalyzeError(ErrorCode.InvalidIdentifier, new Pos(0, 0));
-            }
-            instructions.add(new Instruction(Operation.brtrue, 1));// 如果表达式是真就往下进行
-            instructions.add(new Instruction(Operation.br));// 否则要计算跳转到哪
-            int jpaddr = instructions.size() - 1;
-            // 先处理if true的block
-            boolean[] flags = analyseBlock_stmt(false, isloop, returntype, loopaddr, breakaddrs);
-            boolean returnflag = flags[0];
-            boolean breakcontinueflag = flags[1];
-            boolean elseflag = false;
-            ArrayList<Integer> brToEnds = new ArrayList<>();
-            // 记录下处理完block的指令数
-            brToEnds.add(instructions.size());
-            // 添加跳转并为之前的跳转添加参数
-            instructions.add(new Instruction(Operation.br));
-            instructions.get(jpaddr).x = instructions.size() - jpaddr - 1;
-            while (peek().getTokenType() == TokenType.ELSE_KW) {
-                expect(TokenType.ELSE_KW);
-                // 如果是最后的else
-                if (peek().getTokenType() != TokenType.IF_KW) {
-                    flags = analyseBlock_stmt(false, isloop, returntype, loopaddr, breakaddrs);
-                    returnflag = returnflag & flags[0];
-                    breakcontinueflag = breakcontinueflag & flags[1];
-                    elseflag = true;
-                    break;
-                } else {
-                    // 如果是if就重复之前的
-                    expect(TokenType.IF_KW);
-                    type = analysebasicexpr(false);
-                    if (type == SymbolType.Void)
-                        throw new AnalyzeError(ErrorCode.InvalidIdentifier, new Pos(0, 0));
-                    instructions.add(new Instruction(Operation.brtrue, 1));
-                    instructions.add(new Instruction(Operation.br));
-                    jpaddr = instructions.size() - 1;
-                    flags = analyseBlock_stmt(false, isloop, returntype, loopaddr, breakaddrs);
-                    returnflag = returnflag & flags[0];
-                    breakcontinueflag = breakcontinueflag & flags[1];
-                    brToEnds.add(instructions.size());
-                    instructions.add(new Instruction(Operation.br));
-                    instructions.get(jpaddr).x = instructions.size() - jpaddr - 1;
+                if (check(TokenType.CONST_KW) || check(TokenType.LET_KW))
+                analyseDecl_stmt(SymbolRange.Local);
+            else if (check(TokenType.IF_KW))
+                return analyseIfStmt(insideWhile, returnType, loopLoc, breakList);
+            else if (check(TokenType.WHILE_KW))
+            {
+                expect(TokenType.WHILE_KW);
+                ArrayList<Integer> breakList_ = new ArrayList<>();
+                int looploc = instructions.size() - 1;
+                analysebasicexpr(false);
+                instructions.add(new Instruction(Operation.brtrue, 1));
+                int brLoc = instructions.size();
+                instructions.add(new Instruction(Operation.br));
+                boolean haveBreakOrContinue = analyseBlock_stmt(false, true, returnType, loopLoc, breakList_)[1];
+                if (!haveBreakOrContinue)
+                    instructions.add(new Instruction(Operation.br, looploc - instructions.size()));
+                instructions.get(brLoc).x=instructions.size() - brLoc - 1;
+                for (Integer breakNum : breakList_) {
+                    instructions.get(breakNum).x=instructions.size() - breakNum - 1;
                 }
             }
-            if (elseflag != true) // 如果没有else就代表之后的函数一定要有return
+            else if (check(TokenType.BREAK_KW)) {
+                if (insideWhile)
+                {
+                    expect(TokenType.BREAK_KW);
+                    expect(TokenType.SEMICOLON);
+                    breakList.add(instructions.size());
+                    instructions.add(new Instruction(Operation.br));
+                }
+                else
+                    throw new AnalyzeError(ErrorCode.InvalidInput, peek().getStartPos());
+                return new boolean[]{false, true};
+            } else if (check(TokenType.CONTINUE_KW)) {
+                if (insideWhile)
+                {
+                    expect(TokenType.CONTINUE_KW);
+                    expect(TokenType.SEMICOLON);
+                    instructions.add(new Instruction(Operation.br, loopLoc - instructions.size()));
+                }
+                else
+                    throw new AnalyzeError(ErrorCode.InvalidInput, peek().getStartPos());
+                return new boolean[]{false, true};
+            } else if (check(TokenType.RETURN_KW)) 
             {
-                returnflag = false;
-                breakcontinueflag = false;
-            }
-            for (int i : brToEnds) {
-                instructions.get(i).x = instructions.size() - 1 - i;
-            }
-            boolean[] return_ = new boolean[] { returnflag, breakcontinueflag };
-            return return_;
-        }
-        // while_stmt -> 'while' expr block_stmt
-        else if (peek().getTokenType() == TokenType.WHILE_KW) {
-            expect(TokenType.WHILE_KW);
-            int thisloopaddr = instructions.size() - 1;
-            ArrayList<Integer> thisbreakaddrs = new ArrayList<>();
-            analysebasicexpr(false);
-            instructions.add(new Instruction(Operation.brtrue, 1));
-            int jpaddr = instructions.size();
-            instructions.add(new Instruction(Operation.br));
-            boolean[] b = analyseBlock_stmt(false, true, returntype, thisloopaddr, thisbreakaddrs);
-            if (b[1] == false) 
+                Token expect = expect(TokenType.RETURN_KW);
+                if (returnType != SymbolType.Void)
+                    instructions.add(new Instruction(Operation.arga, 0));
+                SymbolType type = SymbolType.Void;
+                if (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT_LITERAL) || check(TokenType.DOUBLE_LITERAL)||
+                        check(TokenType.STRING_LITERAL) || check(TokenType.CHAR_LITERAL) || check(TokenType.L_PAREN)) {
+                    type = analysebasicexpr(false);
+                }
+                expect(TokenType.SEMICOLON);
+                if (type != returnType)
+                    throw new AnalyzeError(ErrorCode.InvalidInput, expect.getStartPos());
+                if (type != SymbolType.Void)
+                    instructions.add(new Instruction(Operation.store64));
+                instructions.add(new Instruction(Operation.ret));
+                return new boolean[]{true, false};
+            } else if (check(TokenType.L_BRACE))
+                return analyseBlock_stmt(false, insideWhile, returnType, loopLoc, breakList);
+            else if (check(TokenType.SEMICOLON))
+                expect(TokenType.SEMICOLON);
+            else
             {
-                Instruction I = new Instruction(Operation.br, thisloopaddr - instructions.size());
-                instructions.add(I);
+                SymbolType t = analysebasicexpr(false);
+                expect(TokenType.SEMICOLON);
+                if (t != SymbolType.Void)
+                    instructions.add(new Instruction(Operation.pop));
             }
-            ((Instruction) instructions.get(jpaddr)).x = instructions.size() - 1 - jpaddr;
-            for (Integer breakaddr : thisbreakaddrs) 
-            {
-                instructions.get(breakaddr).x = instructions.size() - 1 - breakaddr;
-            }
-        }
-        // break_stmt -> 'break' ';'
-        else if (peek().getTokenType() == TokenType.BREAK_KW) {
-            expect(TokenType.BREAK_KW);
-            expect(TokenType.SEMICOLON);
-            if (isloop == false) 
-            {
-                throw new AnalyzeError(ErrorCode.AssignToConstant, new Pos(0, 0));
-            }
-            breakaddrs.add(instructions.size());
-            instructions.add(new Instruction(Operation.br));
-            boolean[] b = { false, true };
-            return b;
-        }
-        // continue_stmt -> 'continue' ';'
-        else if (peek().getTokenType() == TokenType.CONTINUE_KW) {
-            expect(TokenType.CONTINUE_KW);
-            expect(TokenType.SEMICOLON);
-            if (isloop == false) 
-            {
-                throw new AnalyzeError(ErrorCode.AssignToConstant, new Pos(0, 0));
-            }
-            instructions.add(new Instruction(Operation.br, loopaddr - instructions.size()));
-            boolean[] b = { false, true };
-            return b;
-        }
-        // return_stmt -> 'return' expr? ';'
-        else if (peek().getTokenType() == TokenType.RETURN_KW) {
-            expect(TokenType.RETURN_KW);
-            if (returntype != SymbolType.Void) {
-                instructions.add(new Instruction(Operation.arga, 0));
-            }
-            SymbolType t = SymbolType.Void;
-            if (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT_LITERAL) || check(TokenType.DOUBLE_LITERAL) ||
-            check(TokenType.STRING_LITERAL) || check(TokenType.CHAR_LITERAL) || check(TokenType.L_PAREN)) {
-                t = analysebasicexpr(false);
-            }
-            if (t != returntype) {
-                throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
-            }
-            if (t != SymbolType.Void) {
-                instructions.add(new Instruction(Operation.store64));
-            }
-            instructions.add(new Instruction(Operation.ret));
-            expect(TokenType.SEMICOLON);
-            boolean[] b = { true, false };
-            return b;
-        }
-        // block_stmt -> '{' stmt* '}'
-        else if (peek().getTokenType() == TokenType.L_BRACE) {
-            return analyseBlock_stmt(false, isloop, returntype, loopaddr, breakaddrs);
-        }
-        // empty_stmt -> ';'
-        else if (peek().getTokenType() == TokenType.SEMICOLON) {
-            expect(TokenType.SEMICOLON);
-        }
-        // expr_stmt -> expr ';'
-        else {
-            SymbolType t = analysebasicexpr(false);
-            if (t != SymbolType.Void) {
-                instructions.add(new Instruction(Operation.pop));
-            }
-            expect(TokenType.SEMICOLON);
-        }
-        boolean[] b = { false, false };
-        return b;
+            return new boolean[]{false, false};
     }
+
+    private boolean[] analyseIfStmt(boolean insideWhile, SymbolType returnType, int loopLoc, ArrayList<Integer> breakList) throws CompileError {
+        boolean haveReturn;
+        boolean haveBreakOrContinue;
+        boolean haveElse = false;
+        ArrayList<Integer> brToEnds = new ArrayList<>();
+        expect(TokenType.IF_KW);
+        SymbolType t = analysebasicexpr(false);
+        if (t == SymbolType.Void)
+            throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0,0));
+        instructions.add(new Instruction(Operation.brtrue, 1));
+        instructions.add(new Instruction(Operation.br));
+        int brLoc = instructions.size() - 1;
+        boolean[] b = analyseBlock_stmt(false, insideWhile, returnType, loopLoc, breakList);
+        haveReturn = b[0];
+        haveBreakOrContinue = b[1];
+        brToEnds.add(instructions.size());
+        instructions.add(new Instruction(Operation.br));
+        instructions.get(brLoc).x=instructions.size() - brLoc - 1;
+        if (check(TokenType.ELSE_KW)) {
+            while (nextIf(TokenType.ELSE_KW) != null) {
+                if (nextIf(TokenType.IF_KW) != null) {
+                    t = analysebasicexpr(false);
+                    if (t == SymbolType.Void)
+                        throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
+                    instructions.add(new Instruction(Operation.brtrue, 1));
+                    instructions.add(new Instruction(Operation.br));
+                    brLoc = instructions.size() - 1;
+                    b = analyseBlock_stmt(false, insideWhile, returnType, loopLoc, breakList);
+                    haveReturn &= b[0];
+                    haveBreakOrContinue &= b[1];
+                    brToEnds.add(instructions.size());
+                    instructions.add(new Instruction(Operation.br));
+                    instructions.get(brLoc).x=instructions.size() - brLoc - 1;
+                } else {
+                    b = analyseBlock_stmt(false, insideWhile, returnType, loopLoc, breakList);
+                    haveReturn &= b[0];
+                    haveBreakOrContinue &= b[1];
+                    haveElse = true;
+                    break;
+                }
+            }
+        }
+        if (!haveElse) {
+            haveReturn = false;
+            haveBreakOrContinue = false;
+        }
+        for (Integer brToEnd : brToEnds) {
+            instructions.get(brToEnd).x=instructions.size() - brToEnd - 1;
+        }
+        return new boolean[]{haveReturn, haveBreakOrContinue};
+    }
+
 
     /**
      * expr -> operator_expr | negate_expr | assign_expr | as_expr | call_expr |
