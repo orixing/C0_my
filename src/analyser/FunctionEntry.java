@@ -5,8 +5,7 @@ import instruction.Operation;
 
 public class FunctionEntry extends Instruction{
     public int localnum;
-    public int returnum;// 至今不明白为啥这个会是num。。虽然说明里这么写。。
-    // 难道可能是因为长度？
+    public int returnum;// 不明白为啥这个会是num。。虽然说明里这么写。。
     public int paramnum;
     public int offset;
     public FunctionEntry(Operation operation) {
@@ -26,7 +25,5 @@ public class FunctionEntry extends Instruction{
         return  "fn [" + offset + "] " + localnum + " " + paramnum + "->" + returnum;
     }
 
-	public void add(FunctionEntry start) {
-	}
     
 }

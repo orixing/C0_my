@@ -78,7 +78,7 @@ public class Tokenizer {
             throw new TokenizeError(ErrorCode.InvalidInput, it.previousPos());
         }
         it.nextChar();
-        return new Token(TokenType.STRING_LITERAL, tmpToken.toString(), startPos, it.currentPos());
+        return new Token(TokenType.STRING, tmpToken.toString(), startPos, it.currentPos());
     }
 
     private Token lexChar() throws TokenizeError {
@@ -129,7 +129,7 @@ public class Tokenizer {
                 else
                 {
                     it.nextChar();
-                    return new Token(TokenType.CHAR_LITERAL,c,pos,it.currentPos());
+                    return new Token(TokenType.CHAR,c,pos,it.currentPos());
                 }
             }//不正常转义
             else
@@ -149,7 +149,7 @@ public class Tokenizer {
             else
             {
                 it.nextChar();
-                return new Token(TokenType.CHAR_LITERAL,c,pos,it.currentPos());
+                return new Token(TokenType.CHAR,c,pos,it.currentPos());
             }
         }
     }
@@ -213,14 +213,14 @@ public class Tokenizer {
                 //全加一起转double
                 String ALL = intpart+"."+floatpart+"e"+signpart+epart;
                 double d = Double.parseDouble(ALL);
-                return new Token(TokenType.DOUBLE_LITERAL,d,pos,it.currentPos());
+                return new Token(TokenType.DOUBLE,d,pos,it.currentPos());
             }
             else
             {
                 //全加一起转double
                 String ALL = intpart+"."+floatpart;
                 double d = Double.parseDouble(ALL);
-                return new Token(TokenType.DOUBLE_LITERAL,d,pos,it.currentPos());
+                return new Token(TokenType.DOUBLE,d,pos,it.currentPos());
             }
         }
         else if(peek == 'e' || peek == 'E')
@@ -243,12 +243,12 @@ public class Tokenizer {
             //全加一起转double
             String ALL = intpart+"e"+signpart+epart;
             double d = Double.parseDouble(ALL);
-            return new Token(TokenType.DOUBLE_LITERAL,d,pos,it.currentPos());
+            return new Token(TokenType.DOUBLE,d,pos,it.currentPos());
         }
         else//不是小数
         {
             Integer i = Integer.valueOf(intpart);
-            return new Token(TokenType.UINT_LITERAL,i,pos,it.currentPos());
+            return new Token(TokenType.UINT,i,pos,it.currentPos());
             // Token 的 Value 应填写数字的值
         }
 
@@ -312,15 +312,15 @@ public class Tokenizer {
         }
         else if(s.equals("int")==true)
         {
-            return new Token(TokenType.INT_KW,s,pos,it.currentPos());
+            return new Token(TokenType.INT_TY,s,pos,it.currentPos());
         }
         else if(s.equals("double")==true)
         {
-            return new Token(TokenType.DOUBLE_KW,s,pos,it.currentPos());
+            return new Token(TokenType.DOUBLE_TY,s,pos,it.currentPos());
         }
         else if(s.equals("void")==true)
         {
-            return new Token(TokenType.VOID_KW,s,pos,it.currentPos());
+            return new Token(TokenType.VOID_TY,s,pos,it.currentPos());
         }
         else
         {
