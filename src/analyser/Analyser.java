@@ -935,10 +935,20 @@ public class Analyser {
             }
         }
         outputfunctions.add(start);
-        cutFunction(instructions);
+        int first = 0;
+        for (int i = 1; i < instructions.size(); i++) 
+        {
+            if (instructions.get(i).operation == Operation.func) 
+            {
+                outputfunctions.add(new ArrayList<>(instructions.subList(first, i)));
+                first = i;
+            }
+        }
+        outputfunctions.add(new ArrayList<>(instructions.subList(first, instructions.size())));
         printint(out,outputfunctions.size());
         for (ArrayList<Instruction> funcins : outputfunctions) {
-            for (Instruction ain : funcins) {
+            for (Instruction ain : funcins) 
+            {
                 if (ain.operation==Operation.func) {
                     FunctionEntry afunc = (FunctionEntry) ain;
                     printint(out,afunc.offset);
@@ -946,7 +956,8 @@ public class Analyser {
                     printint(out,afunc.paramnum);
                     printint(out,afunc.localnum);
                     printint(out,funcins.size() - 1);
-                } else {
+                } else 
+                {
                     out.write(ain.operation.getValue());
                     if (ain.x != null) {
                         if (ain.operation == Operation.push) {
@@ -962,7 +973,7 @@ public class Analyser {
         out.close();
     }
 
-    public static byte[] printlong(FileOutputStream out,long val) {
+    public static void printlong(FileOutputStream out,long val) throws IOException {
         byte[] b = new byte[8];
         b[7] = (byte) (val & 0xff);
         b[6] = (byte) ((val >> 8) & 0xff);
@@ -972,30 +983,19 @@ public class Analyser {
         b[2] = (byte) ((val >> 40) & 0xff);
         b[1] = (byte) ((val >> 48) & 0xff);
         b[0] = (byte) ((val >> 56) & 0xff);
-        return b;
+        out.write(b);
     }
 
-    public static byte[] printint(FileOutputStream out,int val) {
+    public static void printint(FileOutputStream out,int val) throws IOException {
         byte[] b = new byte[4];
         b[3] = (byte) (val & 0xff);
         b[2] = (byte) ((val >> 8) & 0xff);
         b[1] = (byte) ((val >> 16) & 0xff);
         b[0] = (byte) ((val >> 24) & 0xff);
-        return b;
+        out.write(b);
     }
 
-    public static void cutFunction(ArrayList<Instruction> instructions) {
-        int first = 0;
-        for (int i = 1; i < instructions.size(); i++) {
-            if (instructions.get(i).operation == Operation.func) {
-                outputfunctions.add(new ArrayList<>(instructions.subList(first, i)));
-                first = i;
-            }
-        }
-        outputfunctions.add(new ArrayList<>(instructions.subList(first, instructions.size())));
-    }
 
 
 }
 
-}

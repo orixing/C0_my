@@ -21,10 +21,11 @@ import tokenizer.Tokenizer;
 public class App {
     public static void main(String[] args) throws Exception{
         Scanner sc=new Scanner(new File(args[0]));
+        FileOutputStream output = new FileOutputStream(new File(args[1]));
         StringIter it=new StringIter(sc);
         Tokenizer tokenizer=new Tokenizer(it);
         Analyser analyser=new Analyser(tokenizer);
-        analyser.analyse(args[1]);
+        analyser.analyse(output);
     }
 }
 
