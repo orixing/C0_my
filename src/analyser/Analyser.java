@@ -835,73 +835,54 @@ public final class Analyser {
     /**
      * block_stmt -> '{' stmt* '}'
      */
-    private boolean[] analyseBlock_stmt(boolean isFunction, boolean isloop, SymbolType returntype, int loopaddr,
-            ArrayList<Integer> breakaddrs) throws CompileError {
+    private boolean[] analyseBlock_stmt(boolean isFunction, boolean insideWhile, SymbolType returnType, int loopLoc, ArrayList<Integer> breakList) throws CompileError {
+        boolean haveReturn = false;
+        boolean haveBreakOrContinue = false;
+        int returnSize = 0;
+        int breakOrContinueSize = 0;
         expect(TokenType.L_BRACE);
-        boolean returnflag = false;
-        boolean breakcontinueflag = false;
-        int returnlen = 0;
-        int breakcontinuelen = 0;
-        if (isFunction == false) {
+        if (!isFunction)
             this.index.push(this.symbolTable.size());
-        }
-        while (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT_LITERAL) || check(TokenType.DOUBLE_LITERAL) || check(TokenType.STRING_LITERAL) || check(TokenType.CHAR_LITERAL) || check(TokenType.L_PAREN) || check(TokenType.LET_KW) ||
-        check(TokenType.CONST_KW) || check(TokenType.IF_KW) || check(TokenType.WHILE_KW) || check(TokenType.BREAK_KW) || check(TokenType.CONTINUE_KW) || check(TokenType.RETURN_KW) || check(TokenType.SEMICOLON) || check(TokenType.L_BRACE)) {
-            if (returnflag == false && breakcontinueflag == false) {
-                boolean[] b = analyseStmt(isloop, returntype, loopaddr, breakaddrs);
-                returnflag = b[0];
-                breakcontinueflag = b[1];
-            } else if (returnflag == false && breakcontinueflag == true) {
-                if (breakcontinuelen == 0) 
-                {
-                    breakcontinuelen = instructions.size();
-                }
-                boolean[] b = analyseStmt(isloop, returntype, loopaddr, breakaddrs);
-                returnflag = b[0];
-            } else if (returnflag == true && breakcontinueflag == false) {
-                if (returnlen == 0) 
-                {
-                    returnlen = instructions.size();
-                }
-                boolean[] b = analyseStmt(isloop, returntype, loopaddr, breakaddrs);
-                breakcontinueflag = b[1];
-            } else if (returnflag == true && breakcontinueflag == true) {
-                if (returnlen == 0) {
-                    returnlen = instructions.size();
-                }
-                if (breakcontinuelen == 0) {
-                    breakcontinuelen = instructions.size();
-                }
-                boolean[] b = analyseStmt(isloop, returntype, loopaddr, breakaddrs);
+        while (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT_LITERAL
+        ) || check(TokenType.DOUBLE_LITERAL) || check(TokenType.STRING_LITERAL) || check(TokenType.CHAR_LITERAL) || check(TokenType.L_PAREN) || check(TokenType.LET_KW) ||
+                check(TokenType.CONST_KW) || check(TokenType.IF_KW) || check(TokenType.WHILE_KW) || check(TokenType.BREAK_KW) || check(TokenType.CONTINUE_KW) || check(TokenType.RETURN_KW) || check(TokenType.SEMICOLON) || check(TokenType.L_BRACE)) {
+            if (returnSize == 0 && haveReturn)
+//                throw new AnalyzeError(ErrorCode.unreachableStatement, peek().getStartPos());
+                returnSize = instructions.size();
+            else if (breakOrContinueSize == 0 && haveBreakOrContinue)
+                breakOrContinueSize = instructions.size();
+
+            if (haveReturn && haveBreakOrContinue)
+                analyseStmt(insideWhile, returnType, loopLoc, breakList);
+            else if (haveReturn)
+                haveBreakOrContinue = analyseStmt(insideWhile, returnType, loopLoc, breakList)[1];
+            else if (haveBreakOrContinue)
+                haveReturn = analyseStmt(insideWhile, returnType, loopLoc, breakList)[0];
+            else {
+                boolean[] b = analyseStmt(insideWhile, returnType, loopLoc, breakList);
+                haveReturn = b[0];
+                haveBreakOrContinue = b[1];
             }
         }
         expect(TokenType.R_BRACE);
-        if (returnlen > 0)
-        {
-            instructions.subList(returnlen, instructions.size()).clear();
-        }
-        if (breakcontinuelen > 0)
-        {
-            instructions.subList(breakcontinuelen, instructions.size()).clear();
-        }
+        if (returnSize > 0)
+            instructions.subList(returnSize, instructions.size()).clear();
+        if (breakOrContinueSize > 0)
+            instructions.subList(breakOrContinueSize, instructions.size()).clear();
+//        if (isFunction && !haveReturn)
+//            throw new AnalyzeError(ErrorCode.MissingReturnStatement, RBrace.getStartPos());
         int endIndex = index.pop();
-        for (int i = symbolTable.size(); i > endIndex; i--) {
-            SymbolEntry tmp = symbolTable.pop();
-            if (tmp.lastaddr != -1) {
-                hash.put(tmp.name, tmp.lastaddr);
-            } else if (tmp.lastaddr == -1) {
-                hash.remove(tmp.name);
+        for (int i = symbolTable.size() - 1; i >= endIndex; i--) {
+            SymbolEntry tmpSymbol = symbolTable.pop();
+            if (tmpSymbol.lastaddr == -1) {
+                hash.remove(tmpSymbol.name);
+                System.out.println();
+            } else {
+                hash.put(tmpSymbol.name, tmpSymbol.lastaddr);
             }
         }
-        if (isFunction)
-        {
-            paramOffset = 0;
-        }
-        paramOffset = 0;
-        boolean[] b = { returnflag, breakcontinueflag };
-        return b;
+        return new boolean[]{haveReturn, haveBreakOrContinue};
     }
-
     /**
      * stmt -> expr_stmt | decl_stmt | if_stmt | while_stmt | break_stmt |
      * continue_stmt | return_stmt | block_stmt | empty_stmt
