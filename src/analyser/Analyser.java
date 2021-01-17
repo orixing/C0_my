@@ -275,7 +275,7 @@ public final class Analyser {
                     instructions.add(new Instruction(Operation.cmpf));
                 }
                 instructions.add(new Instruction(Operation.setgt));
-                type1 = SymbolType.Int;
+                type1 = SymbolType.Bool;
             } 
             else if (symboltype == TokenType.LT) 
             {
@@ -288,7 +288,7 @@ public final class Analyser {
                     instructions.add(new Instruction(Operation.cmpf));
                 }
                 instructions.add(new Instruction(Operation.setlt));
-                type1 = SymbolType.Int;
+                type1 = SymbolType.Bool;
             } 
             else if (symboltype == TokenType.GE) 
             {
@@ -302,7 +302,7 @@ public final class Analyser {
                 }
                 instructions.add(new Instruction(Operation.setlt));
                 instructions.add(new Instruction(Operation.not));
-                type1 = SymbolType.Int;
+                type1 = SymbolType.Bool;
             } 
             else if (symboltype == TokenType.LE) 
             {
@@ -316,7 +316,7 @@ public final class Analyser {
                 }
                 instructions.add(new Instruction(Operation.setgt));
                 instructions.add(new Instruction(Operation.not));
-                type1 = SymbolType.Int;
+                type1 = SymbolType.Bool;
             } 
             else if (symboltype == TokenType.EQ) 
             {
@@ -329,7 +329,7 @@ public final class Analyser {
                     instructions.add(new Instruction(Operation.cmpf));
                 }
                 instructions.add(new Instruction(Operation.not));
-                type1 = SymbolType.Int;
+                type1 = SymbolType.Bool;
             } 
             else if (symboltype == TokenType.NEQ) 
             {
@@ -341,7 +341,7 @@ public final class Analyser {
                 {
                     instructions.add(new Instruction(Operation.cmpf));
                 }
-                type1 = SymbolType.Int;
+                type1 = SymbolType.Bool;
             } 
             else if (symboltype == TokenType.PLUS) 
             {
