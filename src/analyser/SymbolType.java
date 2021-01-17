@@ -3,7 +3,8 @@ package analyser;
 public enum SymbolType {
     Int,
     Double,
-    Void;
+    Void,
+    Bool;
 
 
     @Override
