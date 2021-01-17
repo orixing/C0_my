@@ -461,17 +461,16 @@ public final class Analyser {
             if (addr != null) {
                 switch (range) {
                     case Global:
-                        this.symbolTable.push(new SymbolEntry(name, isConstant, isInitialized, symbolType, range, globalOffset++,addr));
+                        this.symbolTable.push(new SymbolEntry(name, isConstant, isInitialized, symbolType, addr, range, globalOffset++));
                         if (isConstant)
                             Globals.add("1");
                         else
                             Globals.add("0");
                         break;
                     case Param:
-                        this.symbolTable.push(new SymbolEntry(name, isConstant, isInitialized, symbolType, range, paramOffset++,addr));
-                        break;
+                        this.symbolTable.push(new SymbolEntry(name, isConstant, isInitialized, symbolType, addr, range, paramOffset++));
                     case Local:
-                        this.symbolTable.push(new SymbolEntry(name, isConstant, isInitialized, symbolType, range, localOffset++,addr));
+                        this.symbolTable.push(new SymbolEntry(name, isConstant, isInitialized, symbolType, addr, range, localOffset++));
                         break;
                 }
                 
@@ -661,10 +660,10 @@ public final class Analyser {
             int size = symbolTable.size() - 1;
             for (int i = 0; i < paramOffset; i++) {
                 SymbolEntry symbol = this.symbolTable.get(size - i);
-                symbol.stackoffset += 1;
+                symbol.offset += 1;
             }
         }
-        func.offset = s.stackoffset;
+        func.offset = s.offset;
         boolean[] b = analyseBlock_stmt(true, false, type, 0, null);
         boolean returnflag = b[0];
         boolean breakcontinueflag = b[1];
@@ -761,11 +760,11 @@ public final class Analyser {
         if (nextIf(TokenType.ASSIGN) != null) {
             if (globalflag == true) 
             {
-                start.add(new Instruction(Operation.globa, thissymbol.stackoffset));
+                start.add(new Instruction(Operation.globa, thissymbol.offset));
             } 
             else 
             {
-                instructions.add(new Instruction(Operation.loca, thissymbol.stackoffset));
+                instructions.add(new Instruction(Operation.loca, thissymbol.offset));
             }
             SymbolType t = analysebasicexpr(globalflag);
             if (type != t)
@@ -806,9 +805,9 @@ public final class Analyser {
         expect(TokenType.ASSIGN);
 
         if (isGlobal)
-            start.add(new Instruction(Operation.globa, symbol.stackoffset));
+            start.add(new Instruction(Operation.globa, symbol.offset));
         else
-            instructions.add(new Instruction(Operation.loca, symbol.stackoffset));
+            instructions.add(new Instruction(Operation.loca, symbol.offset));
 
         SymbolType t = analysebasicexpr(isGlobal);
         if (type != t)
@@ -862,11 +861,11 @@ public final class Analyser {
         int endIndex = index.pop();
         for (int i = symbolTable.size() - 1; i >= endIndex; i--) {
             SymbolEntry tmpSymbol = symbolTable.pop();
-            if (tmpSymbol.lastaddr == -1) {
+            if (tmpSymbol.chain == -1) {
                 hash.remove(tmpSymbol.name);
                 System.out.println();
             } else {
-                hash.put(tmpSymbol.name, tmpSymbol.lastaddr);
+                hash.put(tmpSymbol.name, tmpSymbol.chain);
             }
         }
         return new boolean[]{haveReturn, haveBreakOrContinue};
@@ -1092,13 +1091,13 @@ public final class Analyser {
                     throw new AnalyzeError(ErrorCode.NotDeclared, token.getStartPos());
                 switch (symbol.symbolRange) {
                     case Global:
-                        instructions.add(new Instruction(Operation.globa, symbol.stackoffset));
+                        instructions.add(new Instruction(Operation.globa, symbol.offset));
                         break;
                     case Param:
-                        instructions.add(new Instruction(Operation.arga, symbol.stackoffset));
+                        instructions.add(new Instruction(Operation.arga, symbol.offset));
                         break;
                     case Local:
-                        instructions.add(new Instruction(Operation.loca, symbol.stackoffset));
+                        instructions.add(new Instruction(Operation.loca, symbol.offset));
                         break;
                 }
                 Token assign = next();
@@ -1185,13 +1184,13 @@ public final class Analyser {
                     throw new AnalyzeError(ErrorCode.NotDeclared, token.getStartPos());
                 switch (symbol.symbolRange) {
                     case Global:
-                        chosenInstruction.add(new Instruction(Operation.globa, symbol.stackoffset));
+                        chosenInstruction.add(new Instruction(Operation.globa, symbol.offset));
                         break;
                     case Param:
-                        instructions.add(new Instruction(Operation.arga, symbol.stackoffset));
+                        instructions.add(new Instruction(Operation.arga, symbol.offset));
                         break;
                     case Local:
-                        instructions.add(new Instruction(Operation.loca, symbol.stackoffset));
+                        instructions.add(new Instruction(Operation.loca, symbol.offset));
                         break;
                 }
                 chosenInstruction.add(new Instruction(Operation.load64));
