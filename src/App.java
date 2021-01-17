@@ -19,24 +19,12 @@ import tokenizer.TokenType;
 import tokenizer.Tokenizer;
 
 public class App {
-    public static void main(String[] args) throws CompileError, IOException {
-        File input = new File(args[0]);
-        Scanner scanner;
-        scanner = new Scanner(input);
-        var iter = new StringIter(scanner);
-        var tokenizer = tokenize(iter);
-        var analyzer = analyze(tokenizer);
-        analyzer.analyse(args[1]);
-    }
-       
-
-    private static Tokenizer tokenize(StringIter iter) {
-        var tokenizer = new Tokenizer(iter);
-        return tokenizer;
-    }
-    private static Analyser analyze(Tokenizer tokenizer) {
-        var analyzer = new Analyser(tokenizer);
-        return analyzer;
+    public static void main(String[] args) throws Exception{
+        Scanner sc=new Scanner(new File(args[0]));
+        StringIter it=new StringIter(sc);
+        Tokenizer tokenizer=new Tokenizer(it);
+        Analyser analyser=new Analyser(tokenizer);
+        analyser.analyse(args[1]);
     }
 }
 

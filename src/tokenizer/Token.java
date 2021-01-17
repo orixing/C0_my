@@ -1,6 +1,5 @@
 package tokenizer;
 
-import error.TokenizeError;
 import util.Pos;
 
 import java.util.Objects;
@@ -52,37 +51,20 @@ public class Token {
         return tokenType;
     }
 
-    public void setTokenType(TokenType tokenType) {
-        this.tokenType = tokenType;
-    }
-
     public Object getValue() {
         return value;
-    }
-
-    public void setValue(Object value) {
-        this.value = value;
     }
 
     public Pos getStartPos() {
         return startPos;
     }
 
-    public void setStartPos(Pos startPos) {
-        this.startPos = startPos;
-    }
-
     public Pos getEndPos() {
         return endPos;
     }
-
-    public void setEndPos(Pos endPos) {
-        this.endPos = endPos;
-    }
-
     @Override
     public String toString() {
-        var sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
         sb.append("Line: ").append(this.startPos.row).append(' ');
         sb.append("Column: ").append(this.startPos.col).append(' ');
         sb.append("Type: ").append(this.tokenType).append(' ');

@@ -43,7 +43,7 @@ public class WriteFile {
         out.write(intToByte(functions.size()));
         for (ArrayList<Instruction> funcInstructions : functions) {
             for (Instruction instruction : funcInstructions) {
-                if (instruction.opt == Operation.func) {
+                if (instruction.operation == Operation.func) {
                     FunctionEntry functionInstruction = (FunctionEntry) instruction;
                     out.write(intToByte(functionInstruction.offset));
                     out.write(intToByte(functionInstruction.returnum));
@@ -51,10 +51,10 @@ public class WriteFile {
                     out.write(intToByte(functionInstruction.localnum));
                     out.write(intToByte(funcInstructions.size() - 1));
                 } else if (instruction.x == null)
-                    out.write(instruction.opt.getValue());
+                    out.write(instruction.operation.getValue());
                 else {
-                    out.write(instruction.opt.getValue());
-                    if (instruction.opt == Operation.push)
+                    out.write(instruction.operation.getValue());
+                    if (instruction.operation == Operation.push)
                         out.write(longToByte(Long.valueOf(instruction.x.toString())));
                     else
                         out.write(intToByte((int) instruction.x));
@@ -90,7 +90,7 @@ public class WriteFile {
     public static void cutFunction(ArrayList<Instruction> instructions) {
         int first = 0;
         for (int i = 1; i < instructions.size(); i++) {
-            if (instructions.get(i).opt == Operation.func) {
+            if (instructions.get(i).operation == Operation.func) {
                 functions.add(new ArrayList<>(instructions.subList(first, i)));
                 first = i;
             }

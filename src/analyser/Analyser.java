@@ -1265,7 +1265,7 @@ public final class Analyser {
         printint(out,funcs.size());
         for (ArrayList<Instruction> funcins : funcs) {
             for (Instruction ain : funcins) {
-                if (ain.opt==Operation.func) {
+                if (ain.operation==Operation.func) {
                     FunctionEntry afunc = (FunctionEntry) ain;
                     printint(out,afunc.offset);
                     printint(out,afunc.returnum);
@@ -1273,9 +1273,9 @@ public final class Analyser {
                     printint(out,afunc.localnum);
                     printint(out,funcins.size() - 1);
                 } else {
-                    out.write(ain.opt.getValue());
+                    out.write(ain.operation.getValue());
                     if (ain.x != null) {
-                        if (ain.opt == Operation.push) {
+                        if (ain.operation == Operation.push) {
                             printlong(out,Long.valueOf(ain.x.toString()));
                         } else {
                             printint(out,(int) ain.x);
@@ -1313,7 +1313,7 @@ public final class Analyser {
     public static void cutFunction(ArrayList<Instruction> instructions) {
         int first = 0;
         for (int i = 1; i < instructions.size(); i++) {
-            if (instructions.get(i).opt == Operation.func) {
+            if (instructions.get(i).operation == Operation.func) {
                 funcs.add(new ArrayList<>(instructions.subList(first, i)));
                 first = i;
             }
