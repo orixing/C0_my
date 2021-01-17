@@ -636,13 +636,13 @@ public final class Analyser {
         expect(TokenType.R_PAREN);
         expect(TokenType.ARROW);
         SymbolType type;
-        if (peek().getTokenType() == TokenType.INT_KW) {
+        if (peek().getTokenType() == TokenType.INT_TY) {
             next();
             type = SymbolType.Int;
-        } else if (peek().getTokenType() == TokenType.DOUBLE_KW) {
+        } else if (peek().getTokenType() == TokenType.DOUBLE_TY) {
             next();
             type = SymbolType.Double;
-        } else if (peek().getTokenType() == TokenType.VOID_KW) {
+        } else if (peek().getTokenType() == TokenType.VOID_TY) {
             next();
             type = SymbolType.Void;
         } else {
@@ -702,14 +702,14 @@ public final class Analyser {
         Token name = expect(TokenType.IDENT);
         expect(TokenType.COLON);
         SymbolType type;
-        if (nextIf(TokenType.INT_KW) != null)
+        if (nextIf(TokenType.INT_TY) != null)
             type = SymbolType.Int;
-        else if (nextIf(TokenType.DOUBLE_KW) != null)
+        else if (nextIf(TokenType.DOUBLE_TY) != null)
             type = SymbolType.Double;
-        else if (nextIf(TokenType.VOID_KW) != null)
+        else if (nextIf(TokenType.VOID_TY) != null)
             type = SymbolType.Void;
         else {
-            List<TokenType> list = Arrays.asList(TokenType.INT_KW, TokenType.DOUBLE_KW, TokenType.VOID_KW);
+            List<TokenType> list = Arrays.asList(TokenType.INT_TY, TokenType.DOUBLE_TY, TokenType.VOID_TY);
             throw new ExpectedTokenError(list, peek());
         }
         addSymbol(name.getValueString(), constflag, true, type, SymbolRange.Param, name.getStartPos());
@@ -742,11 +742,11 @@ public final class Analyser {
         Token NAME = expect(TokenType.IDENT);// 变量名
         expect(TokenType.COLON);
         SymbolType type;
-        if (nextIf(TokenType.INT_KW) != null) {
+        if (nextIf(TokenType.INT_TY) != null) {
             type = SymbolType.Int;
-        } else if (nextIf(TokenType.DOUBLE_KW) != null){
+        } else if (nextIf(TokenType.DOUBLE_TY) != null){
             type = SymbolType.Double;
-        } else if (nextIf(TokenType.VOID_KW) != null) {
+        } else if (nextIf(TokenType.VOID_TY) != null) {
             type = SymbolType.Void;
         } else {
             throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
@@ -790,11 +790,11 @@ public final class Analyser {
         Token nameToken = expect(TokenType.IDENT);
         expect(TokenType.COLON);
         SymbolType type;
-        if (nextIf(TokenType.INT_KW) != null) {
+        if (nextIf(TokenType.INT_TY) != null) {
             type = SymbolType.Int;
-        } else if (nextIf(TokenType.DOUBLE_KW) != null){
+        } else if (nextIf(TokenType.DOUBLE_TY) != null){
             type = SymbolType.Double;
-        } else if (nextIf(TokenType.VOID_KW) != null) {
+        } else if (nextIf(TokenType.VOID_TY) != null) {
             type = SymbolType.Void;
         } else {
             throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
@@ -830,8 +830,8 @@ public final class Analyser {
         expect(TokenType.L_BRACE);
         if (!isFunction)
             this.index.push(this.symbolTable.size());
-        while (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT_LITERAL
-        ) || check(TokenType.DOUBLE_LITERAL) || check(TokenType.STRING_LITERAL) || check(TokenType.CHAR_LITERAL) || check(TokenType.L_PAREN) || check(TokenType.LET_KW) ||
+        while (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT
+        ) || check(TokenType.DOUBLE) || check(TokenType.STRING) || check(TokenType.CHAR) || check(TokenType.L_PAREN) || check(TokenType.LET_KW) ||
                 check(TokenType.CONST_KW) || check(TokenType.IF_KW) || check(TokenType.WHILE_KW) || check(TokenType.BREAK_KW) || check(TokenType.CONTINUE_KW) || check(TokenType.RETURN_KW) || check(TokenType.SEMICOLON) || check(TokenType.L_BRACE)) {
             if (returnSize == 0 && haveReturn)
 //                throw new AnalyzeError(ErrorCode.unreachableStatement, peek().getStartPos());
@@ -924,8 +924,8 @@ public final class Analyser {
                 if (returnType != SymbolType.Void)
                     instructions.add(new Instruction(Operation.arga, 0));
                 SymbolType type = SymbolType.Void;
-                if (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT_LITERAL) || check(TokenType.DOUBLE_LITERAL)||
-                        check(TokenType.STRING_LITERAL) || check(TokenType.CHAR_LITERAL) || check(TokenType.L_PAREN)) {
+                if (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT) || check(TokenType.DOUBLE)||
+                        check(TokenType.STRING) || check(TokenType.CHAR) || check(TokenType.L_PAREN)) {
                     type = analysebasicexpr(false);
                 }
                 expect(TokenType.SEMICOLON);
@@ -1040,14 +1040,14 @@ public final class Analyser {
     }
 
     private SymbolType analyseType() throws CompileError {
-        if (nextIf(TokenType.INT_KW) != null)
+        if (nextIf(TokenType.INT_TY) != null)
             return SymbolType.Int;
-        else if (nextIf(TokenType.DOUBLE_KW) != null)
+        else if (nextIf(TokenType.DOUBLE_TY) != null)
             return SymbolType.Double;
-        else if (nextIf(TokenType.VOID_KW) != null)
+        else if (nextIf(TokenType.VOID_TY) != null)
             return SymbolType.Void;
         else {
-            List<TokenType> list = Arrays.asList(TokenType.INT_KW, TokenType.DOUBLE_KW, TokenType.VOID_KW);
+            List<TokenType> list = Arrays.asList(TokenType.INT_TY, TokenType.DOUBLE_TY, TokenType.VOID_TY);
             throw new ExpectedTokenError(list, peek());
         }
 
@@ -1061,21 +1061,21 @@ public final class Analyser {
             chosenInstruction = start;
         else
             chosenInstruction = instructions;
-        if (check(TokenType.UINT_LITERAL)) {
-            token = expect(TokenType.UINT_LITERAL);
+        if (check(TokenType.UINT)) {
+            token = expect(TokenType.UINT);
             chosenInstruction.add(new Instruction(Operation.push, token.getValue()));
             return SymbolType.Int;
-        } else if (check(TokenType.DOUBLE_LITERAL)) {
-            token = expect(TokenType.DOUBLE_LITERAL);
+        } else if (check(TokenType.DOUBLE)) {
+            token = expect(TokenType.DOUBLE);
             chosenInstruction.add(new Instruction(Operation.push, Double.doubleToRawLongBits((double) token.getValue())));
             return SymbolType.Double;
-        } else if (check(TokenType.STRING_LITERAL)) {
-            token = expect(TokenType.STRING_LITERAL);
+        } else if (check(TokenType.STRING)) {
+            token = expect(TokenType.STRING);
             chosenInstruction.add(new Instruction(Operation.push, (long) globalOffset++));
             Globals.add(token.getValueString());
             return SymbolType.Int;
-        } else if (check(TokenType.CHAR_LITERAL)) {
-            token = expect(TokenType.CHAR_LITERAL);
+        } else if (check(TokenType.CHAR)) {
+            token = expect(TokenType.CHAR);
             chosenInstruction.add(new Instruction(Operation.push, (long) (char) token.getValue()));
             return SymbolType.Int;
         } else if (check(TokenType.IDENT)) {
@@ -1163,7 +1163,7 @@ public final class Analyser {
                 chosenInstruction.add(new Instruction(Operation.stackalloc, stackSize));
                 int paramsSize = params.size();
                 int i = 0;
-                if (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT_LITERAL) || check(TokenType.DOUBLE_LITERAL) || check(TokenType.STRING_LITERAL) || check(TokenType.CHAR_LITERAL) || check(TokenType.L_PAREN)) {
+                if (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT) || check(TokenType.DOUBLE) || check(TokenType.STRING) || check(TokenType.CHAR) || check(TokenType.L_PAREN)) {
                     SymbolType element = analysebasicexpr(globalflag);
                     if (i + 1 > paramsSize || element != params.get(i++))
                         throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0,0));
@@ -1204,7 +1204,7 @@ public final class Analyser {
             expect(TokenType.R_PAREN);
             return element;
         } else
-            throw new ExpectedTokenError(Arrays.asList(TokenType.UINT_LITERAL, TokenType.DOUBLE_LITERAL, TokenType.STRING_LITERAL, TokenType.CHAR_LITERAL, TokenType.IDENT, TokenType.MINUS), peek());
+            throw new ExpectedTokenError(Arrays.asList(TokenType.UINT, TokenType.DOUBLE, TokenType.STRING, TokenType.CHAR, TokenType.IDENT, TokenType.MINUS), peek());
 //        }else if (check(TokenType.MINUS)){
 //            analyseNegateExpr();
 //        } else if (check(TokenType.L_PAREN)) {
