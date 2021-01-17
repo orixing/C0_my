@@ -21,13 +21,12 @@ import tokenizer.Tokenizer;
 public class App {
     public static void main(String[] args) throws CompileError, IOException {
         File input = new File(args[0]);
-        FileOutputStream output = new FileOutputStream(new File(args[1]));
         Scanner scanner;
         scanner = new Scanner(input);
         var iter = new StringIter(scanner);
         var tokenizer = tokenize(iter);
         var analyzer = analyze(tokenizer);
-        analyzer.analyse(output);
+        analyzer.analyse(args[1]);
     }
        
 

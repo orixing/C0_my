@@ -11,7 +11,7 @@ import instruction.Operation;
 import tokenizer.Token;
 import tokenizer.TokenType;
 import tokenizer.Tokenizer;
-import util.Pos;
+import util.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -60,7 +60,7 @@ public final class Analyser {
         this.Globals = new ArrayList<>();
     }
 
-    public void analyse(FileOutputStream args) throws CompileError, IOException {
+    public void analyse(String fileName) throws CompileError, IOException {
         analyseProgram();
         for (String i : Globals) {
             System.out.println(i);
@@ -73,7 +73,8 @@ public final class Analyser {
         for (Instruction i : start) {
             System.out.println(i.toString());
         }
-        output(args);
+        // output(args);
+        WriteFile.writeFile(fileName, Globals, instructions, start);
     }
 
     /**
