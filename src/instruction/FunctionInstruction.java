@@ -26,27 +26,27 @@ public class FunctionInstruction extends Instruction{
         this.offset = offset;
     }
 
-    public int getlocalnum() {
+    public int getLocalCount() {
         return localnum;
     }
 
-    public void setlocalnum(int localnum) {
+    public void setLocalCount(int localnum) {
         this.localnum = localnum;
     }
 
-    public int getreturnnum() {
+    public int getReturnCount() {
         return returnnum;
     }
 
-    public void setreturnnum(int returnnum) {
+    public void setReturnCount(int returnnum) {
         this.returnnum = returnnum;
     }
 
-    public int getparamnum() {
+    public int getParamCount() {
         return paramnum;
     }
 
-    public void setparamnum(int paramnum) {
+    public void setParamCount(int paramnum) {
         this.paramnum = paramnum;
     }
 
