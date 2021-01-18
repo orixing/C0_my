@@ -163,7 +163,7 @@ public class Tokenizer {
             s = s + next;
             peek = it.peekChar();
         }
-        return new Token(TokenType.COMMENT,s,pos,it.currentPos());
+        return nextToken();
     }
 
     private Token lexNumber() throws TokenizeError {
