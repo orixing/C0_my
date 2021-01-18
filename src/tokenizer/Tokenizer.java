@@ -122,89 +122,40 @@ public class Tokenizer {
         // 直到查看下一个字符不是数字为止:
         // -- 前进一个字符，并存储这个字符
         //
-        Pos pos = it.currentPos();
-        String intpart = "";
-        String floatpart = "";
-        String epart = "";
-        String signpart = "";
-        char peek = it.peekChar();
-        while(Character.isDigit(peek))//一直读数字
-        {   
-            char next = it.nextChar();
-            intpart = intpart + next;
-            peek = it.peekChar();
-        }//如果不是数字判断是不是浮点数
-        if(peek == '.')
+        Pos startPos = it.currentPos();
+        StringBuilder tmpToken = new StringBuilder();
+        do {
+            tmpToken.append(it.nextChar());
+        } while (Character.isDigit(it.peekChar()));
+        if (it.peekChar() == '.') 
         {
-            it.nextChar();//把小数点读入
-            peek = it.peekChar();
-            while(Character.isDigit(peek))//一直读数字
-            {   
-                char next = it.nextChar();
-                floatpart = floatpart + next;
-                peek = it.peekChar();
-            }//小数部分结束，开始判断是否有指数部分
-            if(peek == 'e' || peek == 'E')
+            tmpToken.append(it.nextChar());
+            if (Character.isDigit(it.peekChar())) 
             {
-                //先读入e，看下一位是不是符号
-                it.nextChar();
-                peek = it.peekChar();
-                if(peek == '-' || peek == '+')
-                {//是符号，保存符号位
-                    char next = it.nextChar();
-                    signpart = signpart + next;
-                    peek = it.peekChar();
-                }
-                while(Character.isDigit(peek))//一直读数字
-                {   
-                    char next = it.nextChar();
-                    epart = epart + next;
-                    peek = it.peekChar();
-                }
-                //全加一起转double
-                String ALL = intpart+"."+floatpart+"e"+signpart+epart;
-                double d = Double.parseDouble(ALL);
-                return new Token(TokenType.DOUBLE_LITERAL,d,pos,it.currentPos());
-            }
-            else
-            {
-                //全加一起转double
-                String ALL = intpart+"."+floatpart;
-                double d = Double.parseDouble(ALL);
-                return new Token(TokenType.DOUBLE_LITERAL,d,pos,it.currentPos());
-            }
+                do {
+                    tmpToken.append(it.nextChar());
+                } while (Character.isDigit(it.peekChar()));
+                if (it.peekChar() == 'E' || it.peekChar() == 'e') 
+                {
+                    tmpToken.append(it.nextChar());
+                    if(it.peekChar()=='+'||it.peekChar()=='-')
+                        tmpToken.append(it.nextChar());
+                    if (Character.isDigit(it.peekChar())) 
+                    {
+                        do {
+                            tmpToken.append(it.nextChar());
+                        } while (Character.isDigit(it.peekChar()));
+                        return new Token(TokenType.DOUBLE_LITERAL, Double.valueOf(tmpToken.toString()), startPos, it.currentPos());
+                    } 
+                    else throw new TokenizeError(ErrorCode.InvalidInput, it.previousPos());
+                } 
+                else
+                    return new Token(TokenType.DOUBLE_LITERAL, Double.valueOf(tmpToken.toString()), startPos, it.currentPos());
+            } 
+            else throw new TokenizeError(ErrorCode.InvalidInput, it.previousPos());
         }
-        else if(peek == 'e' || peek == 'E')
-        {
-            //先读入e，看下一位是不是符号
-            it.nextChar();
-            peek = it.peekChar();
-            if(peek == '-' || peek == '+')
-            {//是符号，保存符号位
-                char next = it.nextChar();
-                signpart = signpart + next;
-                peek = it.peekChar();
-            }
-            while(Character.isDigit(peek))//一直读数字
-            {   
-                char next = it.nextChar();
-                epart = epart + next;
-                peek = it.peekChar();
-            }
-            //全加一起转double
-            String ALL = intpart+"e"+signpart+epart;
-            double d = Double.parseDouble(ALL);
-            return new Token(TokenType.DOUBLE_LITERAL,d,pos,it.currentPos());
-        }
-        else//不是小数
-        {
-            Integer i = Integer.valueOf(intpart);
-            return new Token(TokenType.UINT_LITERAL,i,pos,it.currentPos());
-            // Token 的 Value 应填写数字的值
-        }
-
+        return new Token(TokenType.UINT_LITERAL, Long.valueOf(tmpToken.toString()), startPos, it.currentPos());
     }
-
     private Token lexIdentOrKeyword() throws TokenizeError {
         // 请填空：
         // 直到查看下一个字符不是数字或字母为止:
