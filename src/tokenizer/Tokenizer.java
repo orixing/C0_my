@@ -80,90 +80,43 @@ public class Tokenizer {
     }
 
     private Token lexChar() throws TokenizeError {
-        Pos pos = it.currentPos();
-        char c = '~';//随便初始化一下，按理说没有影响
-        char peek = it.peekChar();//读一位
-        //非法输入
-        if(peek == '\'' || peek == '\r' || peek == '\n' || peek == '\t')
-        {
-            throw new TokenizeError(ErrorCode.InvalidInput, it.previousPos());
-        }
-        if(peek == '\\')//转义
-        {//读入斜杠后判断下一位
-            it.nextChar();
-            peek = it.peekChar();
-            if(peek == '\'' || peek == '\"' || peek == '\\' || peek == 'n' || peek == 't' || peek == 'r')
-            {//正常转义，读入
-                char next = it.nextChar();
-                if(next == '\'')
-                {
-                    c = next;
-                }
-                if(next == '\"')
-                {
-                    c = next;
-                }
-                if(next == '\\')
-                {
-                    c = next;
-                }
-                if(next == 'n')
-                {
-                    c = '\n';
-                }
-                if(next == 't')
-                {
-                    c = '\t';
-                }
-                if(next == 'r')
-                {
-                    c = '\r';
-                }
-                peek = it.peekChar();
-                if( peek != '\'')//下一位不是结束，错误
-                {
-                    throw new TokenizeError(ErrorCode.InvalidInput, it.previousPos());
-                }
-                else
-                {
-                    it.nextChar();
-                    return new Token(TokenType.CHAR_LITERAL,c,pos,it.currentPos());
-                }
-            }//不正常转义
-            else
-            {
-                throw new TokenizeError(ErrorCode.InvalidInput, it.previousPos());
-            }
-        }
-        else//正常字符
-        {
-            char next = it.nextChar();
-            c =  next;
-            peek = it.peekChar();
-            if( peek != '\'')//下一位不是结束，错误
-            {
-                throw new TokenizeError(ErrorCode.InvalidInput, it.previousPos());
-            }
-            else
-            {
-                it.nextChar();
-                return new Token(TokenType.CHAR_LITERAL,c,pos,it.currentPos());
-            }
-        }
-    }
-    private Token lexComment() throws TokenizeError {
-        Pos pos = it.currentPos();
-        String s = "";
+        Pos startPos = it.currentPos();
+        char value;
+        it.nextChar();
         char peek = it.peekChar();
-        while(peek != '\n')//一直读
-        {
-            char next = it.nextChar();
-            s = s + next;
-            peek = it.peekChar();
+        if (peek != '\'') {
+            if (peek == '\\') {
+                it.nextChar();
+                switch (it.nextChar()) {
+                    case '\\':
+                        value = '\\';
+                        break;
+                    case '"':
+                        value = '"';
+                        break;
+                    case '\'':
+                        value = '\'';
+                        break;
+                    case 'n':
+                        value = '\n';
+                        break;
+                    case 'r':
+                        value = '\r';
+                        break;
+                    case 't':
+                        value = '\t';
+                        break;
+                    default:
+                        throw new TokenizeError(ErrorCode.InvalidInput, it.previousPos());
+                }
+            } else value = it.nextChar();
+            if (it.peekChar() == '\'') {
+                it.nextChar();
+                return new Token(TokenType.CHAR_LITERAL, value, startPos, it.currentPos());
+            } else throw new TokenizeError(ErrorCode.InvalidInput, it.previousPos());
         }
-        return nextToken();
+        throw new TokenizeError(ErrorCode.InvalidInput, it.previousPos());
     }
-
     private Token lexNumber() throws TokenizeError {
         // 请填空：
         // 直到查看下一个字符不是数字为止:
