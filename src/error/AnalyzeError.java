@@ -27,6 +27,10 @@ public class AnalyzeError extends CompileError {
         this.code = code;
         this.pos = pos;
     }
+    public AnalyzeError(ErrorCode code) {
+        this.code = code;
+        this.pos = null;
+    }
 
     @Override
     public String toString() {
