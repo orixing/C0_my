@@ -212,7 +212,12 @@ public class Analyser {
             if (check(TokenType.FN_KW))
                 analyseFunction();
             else
-                analyseDeclStmt(SymbolRange.global);
+            {
+                if (check(TokenType.CONST_KW))
+                    analyseConstDeclStmt(SymbolRange.global);
+                else
+                    analyseLetDeclStmt(SymbolRange.global);
+            }
         }
         expect(TokenType.EOF);
         start.add(new Instruction(Operation.stackalloc, 0));
@@ -316,7 +321,12 @@ public class Analyser {
 
     private boolean[] analyseStmt(boolean insideWhile, SymbolType returnType, int loopLoc, ArrayList<Integer> breakList) throws CompileError {
         if (check(TokenType.CONST_KW) || check(TokenType.LET_KW))
-            analyseDeclStmt(SymbolRange.local);
+            {
+                if (check(TokenType.CONST_KW))
+                    analyseConstDeclStmt(SymbolRange.local);
+                else
+                    analyseLetDeclStmt(SymbolRange.local);
+            }
         else if (check(TokenType.IF_KW))
             return analyseIfStmt(insideWhile, returnType, loopLoc, breakList);
         else if (check(TokenType.WHILE_KW))
@@ -345,12 +355,6 @@ public class Analyser {
         return new boolean[]{false, false};
     }
 
-    private void analyseDeclStmt(SymbolRange symbolrange) throws CompileError {
-        if (check(TokenType.CONST_KW))
-            analyseConstDeclStmt(symbolrange);
-        else
-            analyseLetDeclStmt(symbolrange);
-    }
 
     private void analyseConstDeclStmt(SymbolRange symbolrange) throws CompileError {
         boolean isGlobal = symbolrange == SymbolRange.global;
