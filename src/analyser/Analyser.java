@@ -583,24 +583,34 @@ public class Analyser {
             throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
         }
         if (type == SymbolType.VOID)
+        {
             throw new AnalyzeError(ErrorCode.InvalidInput, nameToken.getStartPos());
+        }
         addSymbol(nameToken.getValueString(), true, true, type, symbolrange, nameToken.getStartPos());
         SymbolEntry symbol = this.symbolTable.peek();
         expect(TokenType.ASSIGN);
-
-        if (globalflag)
+        if (globalflag==true)
+        {
             start.add(new Instruction(Operation.globa, symbol.offset));
+        }
         else
+        {
             instructions.add(new Instruction(Operation.loca, symbol.offset));
-
+        }
         SymbolType t = analysebasicexpr(globalflag);
         if (type != t)
+        {
             throw new AnalyzeError(ErrorCode.InvalidInput);
+        }
         expect(TokenType.SEMICOLON);
-        if (globalflag)
+        if (globalflag==true)
+        {
             start.add(new Instruction(Operation.store64));
+        }
         else
+        {
             instructions.add(new Instruction(Operation.store64));
+        }
     }
 
     private void analyse_Let_Decl_Stmt(SymbolRange symbolrange) throws CompileError {
@@ -629,70 +639,71 @@ public class Analyser {
             throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
         }
         if (type == SymbolType.VOID)
+        {
             throw new AnalyzeError(ErrorCode.InvalidInput, nameToken.getStartPos());
+        }
         addSymbol(nameToken.getValueString(), false, false, type, symbolrange, nameToken.getStartPos());
         SymbolEntry symbol = this.symbolTable.peek();
-        if (nextIf(TokenType.ASSIGN) != null) {
+        if (nextIf(TokenType.ASSIGN) != null)
+        {
 
             if (globalflag)
+            {
                 start.add(new Instruction(Operation.globa, symbol.offset));
+            }
             else
+            {
                 instructions.add(new Instruction(Operation.loca, symbol.offset));
-
+            }
             SymbolType t = analysebasicexpr(globalflag);
             if (type != t)
+            {
                 throw new AnalyzeError(ErrorCode.InvalidInput);
+            }
             SymbolEntry tmps = symbolTable.get(hash.get(nameToken.getValueString()));
             if (tmps.constflag==true)
+            {
                 throw new AnalyzeError(ErrorCode.AssignToConstant);
-            else {
-                if (!tmps.initflag)
-                tmps.initflag=true;
             }
-            if (globalflag)
+            else 
+            {
+                if (tmps.initflag==false)
+                {
+                    tmps.initflag=true;
+                }
+            }
+            if (globalflag==true)
+            {
                 start.add(new Instruction(Operation.store64));
+            }
             else
+            {
                 instructions.add(new Instruction(Operation.store64));
+            }
         }
         expect(TokenType.SEMICOLON);
     }
 
-    private void analyseWhileStmt(SymbolType returnType) throws CompileError {
-        expect(TokenType.WHILE_KW);
-        ArrayList<Integer> breakList = new ArrayList<>();
-        int loopLoc = instructions.size() - 1;
-        analysebasicexpr(false);
-        instructions.add(new Instruction(Operation.brtrue, 1));
-        int jumpaddr = instructions.size();
-        instructions.add(new Instruction(Operation.br));
-        boolean breakcontinueflag = analyse_block_stmt(false, true, returnType, loopLoc, breakList)[1];
-        if (!breakcontinueflag)
-            instructions.add(new Instruction(Operation.br, loopLoc - instructions.size()));
-        instructions.get(jumpaddr).setParam1(instructions.size() - jumpaddr - 1);
-        for (Integer breakNum : breakList) {
-            instructions.get(breakNum).setParam1(instructions.size() - breakNum - 1);
-        }
-    }
-
-
-
-
     private SymbolType analysebasicexpr(boolean globalflag) throws CompileError {
         Stack<TokenType> symbolStack = new Stack<>();
         Stack<SymbolType> exprStack = new Stack<>();
-        if (symbolStack.empty()) {
+        if (symbolStack.empty()) 
+        {
             symbolStack.push(TokenType.EOF);
             exprStack.push(analyseExpr(globalflag));
         }
-        while (!symbolStack.empty()) {
+        while (!symbolStack.empty()) 
+        {
             TokenType nextType = peek().getTokenType();
             int x = terminals.indexOf(symbolStack.peek());
             int y = terminals.indexOf(nextType);
             if (x == -1 && y == -1) break;
-            else if (x == -1 || y != -1 && map[x][y] == false) {
+            else if (x == -1 || y != -1 && map[x][y] == false) 
+            {
                 symbolStack.push(nextType);
                 next();
-                if (nextType == TokenType.AS_KW) {
+                if (nextType == TokenType.AS_KW) 
+                {
                     SymbolType type;
                     if (peek().getTokenType()==TokenType.INT_KW)
                     {
@@ -714,10 +725,15 @@ public class Analyser {
                         throw new AnalyzeError(ErrorCode.InvalidInput, new Pos(0, 0));
                     }
                     exprStack.push(type);
-                } else
+                } 
+                else
+                {
                     exprStack.push(analyseExpr(globalflag));
+                }
 
-            } else if (y == -1 || map[x][y] == true) {
+            } 
+            else if (y == -1 || map[x][y] == true) 
+            {
                 huisu(symbolStack, exprStack, globalflag);
             }
         }
