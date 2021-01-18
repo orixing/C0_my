@@ -342,112 +342,73 @@ public class Analyser {
             }
         }
         else if (check(TokenType.IF_KW))
-        {
-            boolean haveReturn;
-            boolean haveBreakOrContinue;
-            boolean haveElse = false;
-            ArrayList<Integer> brToEnds = new ArrayList<>();
-            expect(TokenType.IF_KW);
-            SymbolType t = analysebasicexpr(false);
-            if (t == SymbolType.VOID)
-                throw new AnalyzeError(ErrorCode.InvalidInput);
-            instructions.add(new Instruction(Operation.brtrue, 1));
-            instructions.add(new Instruction(Operation.br));
-            int brLoc = instructions.size() - 1;
-            boolean[] b = analyseBlockStmt(false, insideWhile, returnType, loopLoc, breakList);
-            haveReturn = b[0];
-            haveBreakOrContinue = b[1];
-            brToEnds.add(instructions.size());
-            instructions.add(new Instruction(Operation.br));
-            instructions.get(brLoc).setParam1(instructions.size() - brLoc - 1);
-            if (check(TokenType.ELSE_KW)) {
-                while (nextIf(TokenType.ELSE_KW) != null) {
-                    if (nextIf(TokenType.IF_KW) != null) {
-                        t = analysebasicexpr(false);
-                        if (t == SymbolType.VOID)
-                            throw new AnalyzeError(ErrorCode.InvalidInput);
-                        instructions.add(new Instruction(Operation.brtrue, 1));
-                        instructions.add(new Instruction(Operation.br));
-                        brLoc = instructions.size() - 1;
-                        b = analyseBlockStmt(false, insideWhile, returnType, loopLoc, breakList);
-                        haveReturn &= b[0];
-                        haveBreakOrContinue &= b[1];
-                        brToEnds.add(instructions.size());
-                        instructions.add(new Instruction(Operation.br));
-                        instructions.get(brLoc).setParam1(instructions.size() - brLoc - 1);
-                    } else {
-                        b = analyseBlockStmt(false, insideWhile, returnType, loopLoc, breakList);
-                        haveReturn &= b[0];
-                        haveBreakOrContinue &= b[1];
-                        haveElse = true;
-                        break;
-                    }
+            {
+        boolean haveReturn;
+        boolean haveBreakOrContinue;
+        boolean haveElse = false;
+        ArrayList<Integer> brToEnds = new ArrayList<>();
+        expect(TokenType.IF_KW);
+        SymbolType t = analysebasicexpr(false);
+        if (t == SymbolType.VOID)
+            throw new AnalyzeError(ErrorCode.InvalidInput);
+        instructions.add(new Instruction(Operation.brtrue, 1));
+        instructions.add(new Instruction(Operation.br));
+        int brLoc = instructions.size() - 1;
+        boolean[] b = analyseBlockStmt(false, insideWhile, returnType, loopLoc, breakList);
+        haveReturn = b[0];
+        haveBreakOrContinue = b[1];
+        brToEnds.add(instructions.size());
+        instructions.add(new Instruction(Operation.br));
+        instructions.get(brLoc).setParam1(instructions.size() - brLoc - 1);
+        if (check(TokenType.ELSE_KW)) {
+            while (nextIf(TokenType.ELSE_KW) != null) {
+                if (nextIf(TokenType.IF_KW) != null) {
+                    t = analysebasicexpr(false);
+                    if (t == SymbolType.VOID)
+                        throw new AnalyzeError(ErrorCode.InvalidInput);
+                    instructions.add(new Instruction(Operation.brtrue, 1));
+                    instructions.add(new Instruction(Operation.br));
+                    brLoc = instructions.size() - 1;
+                    b = analyseBlockStmt(false, insideWhile, returnType, loopLoc, breakList);
+                    haveReturn &= b[0];
+                    haveBreakOrContinue &= b[1];
+                    brToEnds.add(instructions.size());
+                    instructions.add(new Instruction(Operation.br));
+                    instructions.get(brLoc).setParam1(instructions.size() - brLoc - 1);
+                } else {
+                    b = analyseBlockStmt(false, insideWhile, returnType, loopLoc, breakList);
+                    haveReturn &= b[0];
+                    haveBreakOrContinue &= b[1];
+                    haveElse = true;
+                    break;
                 }
             }
-            if (!haveElse) {
-                haveReturn = false;
-                haveBreakOrContinue = false;
-            }
-            for (Integer brToEnd : brToEnds) {
-                instructions.get(brToEnd).setParam1(instructions.size() - brToEnd - 1);
-            }
-            return new boolean[]{haveReturn, haveBreakOrContinue};
         }
+        if (!haveElse) {
+            haveReturn = false;
+            haveBreakOrContinue = false;
+        }
+        for (Integer brToEnd : brToEnds) {
+            instructions.get(brToEnd).setParam1(instructions.size() - brToEnd - 1);
+        }
+        return new boolean[]{haveReturn, haveBreakOrContinue};
+    }
         else if (check(TokenType.WHILE_KW))
-        {
-            expect(TokenType.WHILE_KW);
-            ArrayList<Integer> breaks = new ArrayList<>();
-            int loopadd = instructions.size() - 1;
-            analysebasicexpr(false);
-            instructions.add(new Instruction(Operation.brtrue, 1));
-            int brLoc = instructions.size();
-            instructions.add(new Instruction(Operation.br));
-            boolean haveBreakOrContinue = analyseBlockStmt(false, true, returnType, loopadd, breaks)[1];
-            if (!haveBreakOrContinue)
-                instructions.add(new Instruction(Operation.br, loopLoc - instructions.size()));
-            instructions.get(brLoc).setParam1(instructions.size() - brLoc - 1);
-            for (Integer breakNum : breaks) {
-                instructions.get(breakNum).setParam1(instructions.size() - breakNum - 1);
-            }
-        }
+            analyseWhileStmt(returnType);
         else if (check(TokenType.BREAK_KW)) {
             if (insideWhile)
-            {
-                expect(TokenType.BREAK_KW);
-                expect(TokenType.SEMICOLON);
-                breakList.add(instructions.size());
-                instructions.add(new Instruction(Operation.br));
-            }
+                analyseBreakStmt(breakList);
             else
                 throw new AnalyzeError(ErrorCode.InvalidInput, peek().getStartPos());
             return new boolean[]{false, true};
         } else if (check(TokenType.CONTINUE_KW)) {
             if (insideWhile)
-            {
-                expect(TokenType.CONTINUE_KW);
-                expect(TokenType.SEMICOLON);
-                instructions.add(new Instruction(Operation.br, loopLoc - instructions.size()));
-            }
+                analyseContinueStmt(loopLoc);
             else
                 throw new AnalyzeError(ErrorCode.InvalidInput, peek().getStartPos());
             return new boolean[]{false, true};
         } else if (check(TokenType.RETURN_KW)) {
-            {
-                Token expect = expect(TokenType.RETURN_KW);
-                if (returnType != SymbolType.VOID)
-                    instructions.add(new Instruction(Operation.arga, 0));
-                SymbolType type = SymbolType.VOID;
-                if (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT_LITERAL) || check(TokenType.DOUBLE_LITERAL) || check(TokenType.STRING_LITERAL) || check(TokenType.CHAR_LITERAL) || check(TokenType.L_PAREN)) {
-                    SymbolType t = analysebasicexpr(false);
-                    type = t;
-                }
-                expect(TokenType.SEMICOLON);
-                if (type != returnType)
-                    throw new AnalyzeError(ErrorCode.InvalidInput, expect.getStartPos());
-                if (type != SymbolType.VOID)
-                    instructions.add(new Instruction(Operation.store64));
-                instructions.add(new Instruction(Operation.ret));
-            }
+            analyseReturnStmt(returnType);
             return new boolean[]{true, false};
         } else if (check(TokenType.L_BRACE))
             return analyseBlockStmt(false, insideWhile, returnType, loopLoc, breakList);
@@ -518,6 +479,53 @@ public class Analyser {
         expect(TokenType.SEMICOLON);
     }
 
+
+    private void analyseWhileStmt(SymbolType returnType) throws CompileError {
+        expect(TokenType.WHILE_KW);
+        ArrayList<Integer> breakList = new ArrayList<>();
+        int loopLoc = instructions.size() - 1;
+        analysebasicexpr(false);
+        instructions.add(new Instruction(Operation.brtrue, 1));
+        int brLoc = instructions.size();
+        instructions.add(new Instruction(Operation.br));
+        boolean haveBreakOrContinue = analyseBlockStmt(false, true, returnType, loopLoc, breakList)[1];
+        if (!haveBreakOrContinue)
+            instructions.add(new Instruction(Operation.br, loopLoc - instructions.size()));
+        instructions.get(brLoc).setParam1(instructions.size() - brLoc - 1);
+        for (Integer breakNum : breakList) {
+            instructions.get(breakNum).setParam1(instructions.size() - breakNum - 1);
+        }
+    }
+
+    private void analyseBreakStmt(ArrayList<Integer> breakList) throws CompileError {
+        expect(TokenType.BREAK_KW);
+        expect(TokenType.SEMICOLON);
+        breakList.add(instructions.size());
+        instructions.add(new Instruction(Operation.br));
+    }
+
+    private void analyseContinueStmt(int loopLoc) throws CompileError {
+        expect(TokenType.CONTINUE_KW);
+        expect(TokenType.SEMICOLON);
+        instructions.add(new Instruction(Operation.br, loopLoc - instructions.size()));
+    }
+
+    private void analyseReturnStmt(SymbolType returnType) throws CompileError {
+        Token expect = expect(TokenType.RETURN_KW);
+        if (returnType != SymbolType.VOID)
+            instructions.add(new Instruction(Operation.arga, 0));
+        SymbolType type = SymbolType.VOID;
+        if (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT_LITERAL) || check(TokenType.DOUBLE_LITERAL) || check(TokenType.STRING_LITERAL) || check(TokenType.CHAR_LITERAL) || check(TokenType.L_PAREN)) {
+            SymbolType t = analysebasicexpr(false);
+            type = t;
+        }
+        expect(TokenType.SEMICOLON);
+        if (type != returnType)
+            throw new AnalyzeError(ErrorCode.InvalidInput, expect.getStartPos());
+        if (type != SymbolType.VOID)
+            instructions.add(new Instruction(Operation.store64));
+        instructions.add(new Instruction(Operation.ret));
+    }
 
     private SymbolType analysebasicexpr(boolean isGlobal) throws CompileError {
         Stack<TokenType> symbolStack = new Stack<>();
