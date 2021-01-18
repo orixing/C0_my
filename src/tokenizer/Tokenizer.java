@@ -36,8 +36,6 @@ public class Tokenizer {
             return lexString();
         } else if (peek=='\'') {
             return lexChar();
-        } else if (peek=='\\') {
-            return lexComment();
         } else {
             return lexOperatorOrUnknown();
         }
@@ -357,6 +355,11 @@ public class Tokenizer {
 
             case '/':
                 // 填入返回语句
+                if (it.peekChar() == '/') {
+                    it.nextChar();
+                    while (it.nextChar() != '\n');
+                    return nextToken();
+                }
                 return new Token(TokenType.DIV, '/', it.previousPos(), it.currentPos());
 
             // 填入更多状态和返回语句
