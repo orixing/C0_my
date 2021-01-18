@@ -32,9 +32,16 @@ public class Analyser {
     Stack<SymbolEntry> symbolTable = new Stack<>();
     Stack<Integer> index = new Stack<>();
     HashMap<String, Integer> hash = new HashMap<>();
+
+
+    //指令集
     ArrayList<Instruction> instructions;
+
+    //start函数指令集
     ArrayList<Instruction> start;
+    //全局变量
     ArrayList<String> Globals;
+    //偏移量
     int globalOffset = 0;
     int paramOffset = 0;
     int localOffset = 0;
@@ -195,6 +202,11 @@ public class Analyser {
         }
     }
 
+    private void addBlock() {
+        this.index.push(this.symbolTable.size());
+        System.out.println("add block");
+    }
+
     private void changeInitialized(String name, Pos curPos) throws AnalyzeError {
         SymbolEntry symbol = symbolTable.get(hash.get(name));
         if (symbol.constflag==true)
@@ -205,6 +217,22 @@ public class Analyser {
         }
     }
 
+    private void removeBlockSymbols(boolean isFunction) {
+        int endIndex = index.pop();
+        for (int i = symbolTable.size() - 1; i >= endIndex; i--) {
+            SymbolEntry tmpSymbol = symbolTable.pop();
+            if (tmpSymbol.lastaddr == -1) {
+                hash.remove(tmpSymbol.name);
+                System.out.println();
+            } else {
+                hash.put(tmpSymbol.name, tmpSymbol.lastaddr);
+            }
+        }
+        if (isFunction)
+            paramOffset = 0;
+        System.out.println("remove block");
+    }
+
     private void analyseProgram() throws CompileError {
         Globals.add("_start");
         start.add(new FunctionEntry(Operation.func, 0, 0, 0, globalOffset++));
@@ -212,18 +240,14 @@ public class Analyser {
             if (check(TokenType.FN_KW))
                 analyseFunction();
             else
-            {
-                if (check(TokenType.CONST_KW))
-                    analyseConstDeclStmt(SymbolRange.global);
-                else
-                    analyseLetDeclStmt(SymbolRange.global);
-            }
+                analyseDeclStmt(SymbolRange.global);
         }
         expect(TokenType.EOF);
         start.add(new Instruction(Operation.stackalloc, 0));
         start.add(new Instruction(Operation.call, this.symbolTable.get(this.hash.get("main")).funcOffset));
     }
 
+    //need implement
     private void analyseFunction() throws CompileError {
         expect(TokenType.FN_KW);
         Token nameToken = expect(TokenType.IDENT);
@@ -252,6 +276,7 @@ public class Analyser {
                 SymbolEntry symbol = this.symbolTable.get(last - i);
                 symbol.offset=symbol.offset + 1;
             }
+            //instructions.add(new Instruction(Operation.arga, 0));
         }
         functionInstruction.offset=funcSymbol.offset;
         boolean[] b = analyseBlockStmt(true, false, type, 0, null);
@@ -280,9 +305,10 @@ public class Analyser {
         int breakOrContinueSize = 0;
         expect(TokenType.L_BRACE);
         if (!isFunction)
-            this.index.push(this.symbolTable.size());
+            addBlock();
         while (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT_LITERAL) || check(TokenType.DOUBLE_LITERAL) || check(TokenType.STRING_LITERAL) || check(TokenType.CHAR_LITERAL) || check(TokenType.L_PAREN) || check(TokenType.LET_KW) || check(TokenType.CONST_KW) || check(TokenType.IF_KW) || check(TokenType.WHILE_KW) || check(TokenType.BREAK_KW) || check(TokenType.CONTINUE_KW) || check(TokenType.RETURN_KW) || check(TokenType.SEMICOLON) || check(TokenType.L_BRACE)) {
             if (returnSize == 0 && haveReturn)
+//                throw new AnalyzeError(ErrorCode.unreachableStatement, peek().getStartPos());
                 returnSize = instructions.size();
             else if (breakOrContinueSize == 0 && haveBreakOrContinue)
                 breakOrContinueSize = instructions.size();
@@ -304,29 +330,15 @@ public class Analyser {
             instructions.subList(returnSize, instructions.size()).clear();
         if (breakOrContinueSize > 0)
             instructions.subList(breakOrContinueSize, instructions.size()).clear();
-        int endIndex = index.pop();
-        for (int i = symbolTable.size() - 1; i >= endIndex; i--) {
-            SymbolEntry tmpSymbol = symbolTable.pop();
-            if (tmpSymbol.lastaddr == -1) {
-                hash.remove(tmpSymbol.name);
-                System.out.println();
-            } else {
-                hash.put(tmpSymbol.name, tmpSymbol.lastaddr);
-            }
-        }
-        if (isFunction)
-            paramOffset = 0;
+//        if (isFunction && !haveReturn)
+//            throw new AnalyzeError(ErrorCode.MissingReturnStatement, RBrace.getStartPos());
+        removeBlockSymbols(isFunction);
         return new boolean[]{haveReturn, haveBreakOrContinue};
     }
 
     private boolean[] analyseStmt(boolean insideWhile, SymbolType returnType, int loopLoc, ArrayList<Integer> breakList) throws CompileError {
         if (check(TokenType.CONST_KW) || check(TokenType.LET_KW))
-            {
-                if (check(TokenType.CONST_KW))
-                    analyseConstDeclStmt(SymbolRange.local);
-                else
-                    analyseLetDeclStmt(SymbolRange.local);
-            }
+            analyseDeclStmt(SymbolRange.local);
         else if (check(TokenType.IF_KW))
             return analyseIfStmt(insideWhile, returnType, loopLoc, breakList);
         else if (check(TokenType.WHILE_KW))
@@ -355,6 +367,12 @@ public class Analyser {
         return new boolean[]{false, false};
     }
 
+    private void analyseDeclStmt(SymbolRange symbolrange) throws CompileError {
+        if (check(TokenType.CONST_KW))
+            analyseConstDeclStmt(symbolrange);
+        else
+            analyseLetDeclStmt(symbolrange);
+    }
 
     private void analyseConstDeclStmt(SymbolRange symbolrange) throws CompileError {
         boolean isGlobal = symbolrange == SymbolRange.global;
@@ -515,14 +533,20 @@ public class Analyser {
         if (t != SymbolType.VOID)
             instructions.add(new Instruction(Operation.pop));
     }
+
+    //expr->
     private SymbolType analyseExprOPG(boolean isGlobal) throws CompileError {
         Stack<TokenType> symbolStack = new Stack<>();
         Stack<SymbolType> exprStack = new Stack<>();
+        //因为stack是TokenType类型的，因此用EOF代替OPG的#
         if (symbolStack.empty()) {
             symbolStack.push(TokenType.EOF);
             exprStack.push(analyseOtherExpr(isGlobal));
         }
         while (!symbolStack.empty()) {
+//            if (check(TokenType.PLUS) || check(TokenType.MINUS) || check(TokenType.MUL) || check(TokenType.DIV) ||
+//                    check(TokenType.EQ) || check(TokenType.NEQ) || check(TokenType.LT) || check(TokenType.GT) ||
+//                    check(TokenType.GE) || check(TokenType.LE) || check(TokenType.AS_KW)) {
             TokenType nextType = peek().getTokenType();
             int x = terminals.indexOf(symbolStack.peek());
             int y = terminals.indexOf(nextType);
@@ -539,6 +563,7 @@ public class Analyser {
             } else if (y == -1 || map[x][y] == true) {
                 huisu(symbolStack, exprStack, isGlobal);
             }
+//            }
         }
         return exprStack.peek();
     }
@@ -763,6 +788,11 @@ public class Analyser {
                             funcReturnType = SymbolType.VOID;
                             params = new ArrayList<>();
                             break;
+//                        case "main":
+//                            funcReturnType = SymbolType.VOID;
+//                            params = new ArrayList<>();
+//                            haveMain = true;
+//                            break;
                         default:
                             throw new AnalyzeError(ErrorCode.NotDeclared, token.getStartPos());
                     }
@@ -823,6 +853,21 @@ public class Analyser {
             return element;
         } else
             throw new ExpectedTokenError(Arrays.asList(TokenType.UINT_LITERAL, TokenType.DOUBLE_LITERAL, TokenType.STRING_LITERAL, TokenType.CHAR_LITERAL, TokenType.IDENT, TokenType.MINUS), peek());
+//        }else if (check(TokenType.MINUS)){
+//            analyseNegateExpr();
+//        } else if (check(TokenType.L_PAREN)) {
+//            analyseGroupExpr();
+//        }
+//        while (check(TokenType.PLUS) || check(TokenType.MINUS) || check(TokenType.MUL) || check(TokenType.DIV) || check(TokenType.EQ) || check(TokenType.NEQ) || check(TokenType.LT) || check(TokenType.GT) || check(TokenType.GE) || check(TokenType.LE) || check(TokenType.AS_KW)) {
+//            if (nextIf(TokenType.AS_KW) != null) {
+//                SymbolType type = analyseType();
+//            } else {
+//                Token operator = next();
+//                switch (operator.getTokenType()) {
+//                    case PLUS:
+//                }
+//            }
+//        }
     }
 
     private SymbolType analyseNegateExpr(boolean isGlobal) throws CompileError {
