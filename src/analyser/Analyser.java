@@ -32,16 +32,9 @@ public class Analyser {
     Stack<SymbolEntry> symbolTable = new Stack<>();
     Stack<Integer> index = new Stack<>();
     HashMap<String, Integer> hash = new HashMap<>();
-
-
-    //指令集
     ArrayList<Instruction> instructions;
-
-    //start函数指令集
     ArrayList<Instruction> start;
-    //全局变量
     ArrayList<String> Globals;
-    //偏移量
     int globalOffset = 0;
     int paramOffset = 0;
     int localOffset = 0;
@@ -240,14 +233,20 @@ public class Analyser {
             if (check(TokenType.FN_KW))
                 analyseFunction();
             else
-                analyseDeclStmt(SymbolRange.global);
+            {
+                {
+                    if (check(TokenType.CONST_KW))
+                        analyseConstDeclStmt(SymbolRange.global);
+                    else
+                        analyseLetDeclStmt(SymbolRange.global);
+                }
+            }
         }
         expect(TokenType.EOF);
         start.add(new Instruction(Operation.stackalloc, 0));
         start.add(new Instruction(Operation.call, this.symbolTable.get(this.hash.get("main")).funcOffset));
     }
 
-    //need implement
     private void analyseFunction() throws CompileError {
         expect(TokenType.FN_KW);
         Token nameToken = expect(TokenType.IDENT);
@@ -276,7 +275,6 @@ public class Analyser {
                 SymbolEntry symbol = this.symbolTable.get(last - i);
                 symbol.offset=symbol.offset + 1;
             }
-            //instructions.add(new Instruction(Operation.arga, 0));
         }
         functionInstruction.offset=funcSymbol.offset;
         boolean[] b = analyseBlockStmt(true, false, type, 0, null);
@@ -308,7 +306,6 @@ public class Analyser {
             addBlock();
         while (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT_LITERAL) || check(TokenType.DOUBLE_LITERAL) || check(TokenType.STRING_LITERAL) || check(TokenType.CHAR_LITERAL) || check(TokenType.L_PAREN) || check(TokenType.LET_KW) || check(TokenType.CONST_KW) || check(TokenType.IF_KW) || check(TokenType.WHILE_KW) || check(TokenType.BREAK_KW) || check(TokenType.CONTINUE_KW) || check(TokenType.RETURN_KW) || check(TokenType.SEMICOLON) || check(TokenType.L_BRACE)) {
             if (returnSize == 0 && haveReturn)
-//                throw new AnalyzeError(ErrorCode.unreachableStatement, peek().getStartPos());
                 returnSize = instructions.size();
             else if (breakOrContinueSize == 0 && haveBreakOrContinue)
                 breakOrContinueSize = instructions.size();
@@ -330,49 +327,142 @@ public class Analyser {
             instructions.subList(returnSize, instructions.size()).clear();
         if (breakOrContinueSize > 0)
             instructions.subList(breakOrContinueSize, instructions.size()).clear();
-//        if (isFunction && !haveReturn)
-//            throw new AnalyzeError(ErrorCode.MissingReturnStatement, RBrace.getStartPos());
         removeBlockSymbols(isFunction);
         return new boolean[]{haveReturn, haveBreakOrContinue};
     }
 
     private boolean[] analyseStmt(boolean insideWhile, SymbolType returnType, int loopLoc, ArrayList<Integer> breakList) throws CompileError {
         if (check(TokenType.CONST_KW) || check(TokenType.LET_KW))
-            analyseDeclStmt(SymbolRange.local);
+        {
+            {
+                if (check(TokenType.CONST_KW))
+                    analyseConstDeclStmt(SymbolRange.local);
+                else
+                    analyseLetDeclStmt(SymbolRange.local);
+            }
+        }
         else if (check(TokenType.IF_KW))
-            return analyseIfStmt(insideWhile, returnType, loopLoc, breakList);
+        {
+            boolean haveReturn;
+            boolean haveBreakOrContinue;
+            boolean haveElse = false;
+            ArrayList<Integer> brToEnds = new ArrayList<>();
+            expect(TokenType.IF_KW);
+            SymbolType t = analysebasicexpr(false);
+            if (t == SymbolType.VOID)
+                throw new AnalyzeError(ErrorCode.InvalidInput);
+            instructions.add(new Instruction(Operation.brtrue, 1));
+            instructions.add(new Instruction(Operation.br));
+            int brLoc = instructions.size() - 1;
+            boolean[] b = analyseBlockStmt(false, insideWhile, returnType, loopLoc, breakList);
+            haveReturn = b[0];
+            haveBreakOrContinue = b[1];
+            brToEnds.add(instructions.size());
+            instructions.add(new Instruction(Operation.br));
+            instructions.get(brLoc).setParam1(instructions.size() - brLoc - 1);
+            if (check(TokenType.ELSE_KW)) {
+                while (nextIf(TokenType.ELSE_KW) != null) {
+                    if (nextIf(TokenType.IF_KW) != null) {
+                        t = analysebasicexpr(false);
+                        if (t == SymbolType.VOID)
+                            throw new AnalyzeError(ErrorCode.InvalidInput);
+                        instructions.add(new Instruction(Operation.brtrue, 1));
+                        instructions.add(new Instruction(Operation.br));
+                        brLoc = instructions.size() - 1;
+                        b = analyseBlockStmt(false, insideWhile, returnType, loopLoc, breakList);
+                        haveReturn &= b[0];
+                        haveBreakOrContinue &= b[1];
+                        brToEnds.add(instructions.size());
+                        instructions.add(new Instruction(Operation.br));
+                        instructions.get(brLoc).setParam1(instructions.size() - brLoc - 1);
+                    } else {
+                        b = analyseBlockStmt(false, insideWhile, returnType, loopLoc, breakList);
+                        haveReturn &= b[0];
+                        haveBreakOrContinue &= b[1];
+                        haveElse = true;
+                        break;
+                    }
+                }
+            }
+            if (!haveElse) {
+                haveReturn = false;
+                haveBreakOrContinue = false;
+            }
+            for (Integer brToEnd : brToEnds) {
+                instructions.get(brToEnd).setParam1(instructions.size() - brToEnd - 1);
+            }
+            return new boolean[]{haveReturn, haveBreakOrContinue};
+        }
         else if (check(TokenType.WHILE_KW))
-            analyseWhileStmt(returnType);
+        {
+            expect(TokenType.WHILE_KW);
+            ArrayList<Integer> breaks = new ArrayList<>();
+            int loopadd = instructions.size() - 1;
+            analysebasicexpr(false);
+            instructions.add(new Instruction(Operation.brtrue, 1));
+            int brLoc = instructions.size();
+            instructions.add(new Instruction(Operation.br));
+            boolean haveBreakOrContinue = analyseBlockStmt(false, true, returnType, loopadd, breaks)[1];
+            if (!haveBreakOrContinue)
+                instructions.add(new Instruction(Operation.br, loopLoc - instructions.size()));
+            instructions.get(brLoc).setParam1(instructions.size() - brLoc - 1);
+            for (Integer breakNum : breaks) {
+                instructions.get(breakNum).setParam1(instructions.size() - breakNum - 1);
+            }
+        }
         else if (check(TokenType.BREAK_KW)) {
             if (insideWhile)
-                analyseBreakStmt(breakList);
+            {
+                expect(TokenType.BREAK_KW);
+                expect(TokenType.SEMICOLON);
+                breakList.add(instructions.size());
+                instructions.add(new Instruction(Operation.br));
+            }
             else
                 throw new AnalyzeError(ErrorCode.InvalidInput, peek().getStartPos());
             return new boolean[]{false, true};
         } else if (check(TokenType.CONTINUE_KW)) {
             if (insideWhile)
-                analyseContinueStmt(loopLoc);
+            {
+                expect(TokenType.CONTINUE_KW);
+                expect(TokenType.SEMICOLON);
+                instructions.add(new Instruction(Operation.br, loopLoc - instructions.size()));
+            }
             else
                 throw new AnalyzeError(ErrorCode.InvalidInput, peek().getStartPos());
             return new boolean[]{false, true};
         } else if (check(TokenType.RETURN_KW)) {
-            analyseReturnStmt(returnType);
+            {
+                Token expect = expect(TokenType.RETURN_KW);
+                if (returnType != SymbolType.VOID)
+                    instructions.add(new Instruction(Operation.arga, 0));
+                SymbolType type = SymbolType.VOID;
+                if (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT_LITERAL) || check(TokenType.DOUBLE_LITERAL) || check(TokenType.STRING_LITERAL) || check(TokenType.CHAR_LITERAL) || check(TokenType.L_PAREN)) {
+                    SymbolType t = analysebasicexpr(false);
+                    type = t;
+                }
+                expect(TokenType.SEMICOLON);
+                if (type != returnType)
+                    throw new AnalyzeError(ErrorCode.InvalidInput, expect.getStartPos());
+                if (type != SymbolType.VOID)
+                    instructions.add(new Instruction(Operation.store64));
+                instructions.add(new Instruction(Operation.ret));
+            }
             return new boolean[]{true, false};
         } else if (check(TokenType.L_BRACE))
             return analyseBlockStmt(false, insideWhile, returnType, loopLoc, breakList);
         else if (check(TokenType.SEMICOLON))
             expect(TokenType.SEMICOLON);
         else
-            analyseExprStmt();
+        {
+            SymbolType t = analysebasicexpr(false);
+            expect(TokenType.SEMICOLON);
+            if (t != SymbolType.VOID)
+                instructions.add(new Instruction(Operation.pop));
+        }
         return new boolean[]{false, false};
     }
 
-    private void analyseDeclStmt(SymbolRange symbolrange) throws CompileError {
-        if (check(TokenType.CONST_KW))
-            analyseConstDeclStmt(symbolrange);
-        else
-            analyseLetDeclStmt(symbolrange);
-    }
 
     private void analyseConstDeclStmt(SymbolRange symbolrange) throws CompileError {
         boolean isGlobal = symbolrange == SymbolRange.global;
@@ -390,7 +480,7 @@ public class Analyser {
         else
             instructions.add(new Instruction(Operation.loca, symbol.offset));
 
-        SymbolType t = analyseExprOPG(isGlobal);
+        SymbolType t = analysebasicexpr(isGlobal);
         if (type != t)
             throw new AnalyzeError(ErrorCode.InvalidInput);
         expect(TokenType.SEMICOLON);
@@ -416,7 +506,7 @@ public class Analyser {
             else
                 instructions.add(new Instruction(Operation.loca, symbol.offset));
 
-            SymbolType t = analyseExprOPG(isGlobal);
+            SymbolType t = analysebasicexpr(isGlobal);
             if (type != t)
                 throw new AnalyzeError(ErrorCode.InvalidInput);
             changeInitialized(nameToken.getValueString(), nameToken.getStartPos());
@@ -428,125 +518,15 @@ public class Analyser {
         expect(TokenType.SEMICOLON);
     }
 
-    private boolean[] analyseIfStmt(boolean insideWhile, SymbolType returnType, int loopLoc, ArrayList<Integer> breakList) throws CompileError {
-        boolean haveReturn;
-        boolean haveBreakOrContinue;
-        boolean haveElse = false;
-        ArrayList<Integer> brToEnds = new ArrayList<>();
-        expect(TokenType.IF_KW);
-        SymbolType t = analyseExprOPG(false);
-        if (t == SymbolType.VOID)
-            throw new AnalyzeError(ErrorCode.InvalidInput);
-        instructions.add(new Instruction(Operation.brtrue, 1));
-        instructions.add(new Instruction(Operation.br));
-        int brLoc = instructions.size() - 1;
-        boolean[] b = analyseBlockStmt(false, insideWhile, returnType, loopLoc, breakList);
-        haveReturn = b[0];
-        haveBreakOrContinue = b[1];
-        brToEnds.add(instructions.size());
-        instructions.add(new Instruction(Operation.br));
-        instructions.get(brLoc).setParam1(instructions.size() - brLoc - 1);
-        if (check(TokenType.ELSE_KW)) {
-            while (nextIf(TokenType.ELSE_KW) != null) {
-                if (nextIf(TokenType.IF_KW) != null) {
-                    t = analyseExprOPG(false);
-                    if (t == SymbolType.VOID)
-                        throw new AnalyzeError(ErrorCode.InvalidInput);
-                    instructions.add(new Instruction(Operation.brtrue, 1));
-                    instructions.add(new Instruction(Operation.br));
-                    brLoc = instructions.size() - 1;
-                    b = analyseBlockStmt(false, insideWhile, returnType, loopLoc, breakList);
-                    haveReturn &= b[0];
-                    haveBreakOrContinue &= b[1];
-                    brToEnds.add(instructions.size());
-                    instructions.add(new Instruction(Operation.br));
-                    instructions.get(brLoc).setParam1(instructions.size() - brLoc - 1);
-                } else {
-                    b = analyseBlockStmt(false, insideWhile, returnType, loopLoc, breakList);
-                    haveReturn &= b[0];
-                    haveBreakOrContinue &= b[1];
-                    haveElse = true;
-                    break;
-                }
-            }
-        }
-        if (!haveElse) {
-            haveReturn = false;
-            haveBreakOrContinue = false;
-        }
-        for (Integer brToEnd : brToEnds) {
-            instructions.get(brToEnd).setParam1(instructions.size() - brToEnd - 1);
-        }
-        return new boolean[]{haveReturn, haveBreakOrContinue};
-    }
 
-    private void analyseWhileStmt(SymbolType returnType) throws CompileError {
-        expect(TokenType.WHILE_KW);
-        ArrayList<Integer> breakList = new ArrayList<>();
-        int loopLoc = instructions.size() - 1;
-        analyseExprOPG(false);
-        instructions.add(new Instruction(Operation.brtrue, 1));
-        int brLoc = instructions.size();
-        instructions.add(new Instruction(Operation.br));
-        boolean haveBreakOrContinue = analyseBlockStmt(false, true, returnType, loopLoc, breakList)[1];
-        if (!haveBreakOrContinue)
-            instructions.add(new Instruction(Operation.br, loopLoc - instructions.size()));
-        instructions.get(brLoc).setParam1(instructions.size() - brLoc - 1);
-        for (Integer breakNum : breakList) {
-            instructions.get(breakNum).setParam1(instructions.size() - breakNum - 1);
-        }
-    }
-
-    private void analyseBreakStmt(ArrayList<Integer> breakList) throws CompileError {
-        expect(TokenType.BREAK_KW);
-        expect(TokenType.SEMICOLON);
-        breakList.add(instructions.size());
-        instructions.add(new Instruction(Operation.br));
-    }
-
-    private void analyseContinueStmt(int loopLoc) throws CompileError {
-        expect(TokenType.CONTINUE_KW);
-        expect(TokenType.SEMICOLON);
-        instructions.add(new Instruction(Operation.br, loopLoc - instructions.size()));
-    }
-
-    private void analyseReturnStmt(SymbolType returnType) throws CompileError {
-        Token expect = expect(TokenType.RETURN_KW);
-        if (returnType != SymbolType.VOID)
-            instructions.add(new Instruction(Operation.arga, 0));
-        SymbolType type = SymbolType.VOID;
-        if (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT_LITERAL) || check(TokenType.DOUBLE_LITERAL) || check(TokenType.STRING_LITERAL) || check(TokenType.CHAR_LITERAL) || check(TokenType.L_PAREN)) {
-            SymbolType t = analyseExprOPG(false);
-            type = t;
-        }
-        expect(TokenType.SEMICOLON);
-        if (type != returnType)
-            throw new AnalyzeError(ErrorCode.InvalidInput, expect.getStartPos());
-        if (type != SymbolType.VOID)
-            instructions.add(new Instruction(Operation.store64));
-        instructions.add(new Instruction(Operation.ret));
-    }
-
-    private void analyseExprStmt() throws CompileError {
-        SymbolType t = analyseExprOPG(false);
-        expect(TokenType.SEMICOLON);
-        if (t != SymbolType.VOID)
-            instructions.add(new Instruction(Operation.pop));
-    }
-
-    //expr->
-    private SymbolType analyseExprOPG(boolean isGlobal) throws CompileError {
+    private SymbolType analysebasicexpr(boolean isGlobal) throws CompileError {
         Stack<TokenType> symbolStack = new Stack<>();
         Stack<SymbolType> exprStack = new Stack<>();
-        //因为stack是TokenType类型的，因此用EOF代替OPG的#
         if (symbolStack.empty()) {
             symbolStack.push(TokenType.EOF);
-            exprStack.push(analyseOtherExpr(isGlobal));
+            exprStack.push(analyseExpr(isGlobal));
         }
         while (!symbolStack.empty()) {
-//            if (check(TokenType.PLUS) || check(TokenType.MINUS) || check(TokenType.MUL) || check(TokenType.DIV) ||
-//                    check(TokenType.EQ) || check(TokenType.NEQ) || check(TokenType.LT) || check(TokenType.GT) ||
-//                    check(TokenType.GE) || check(TokenType.LE) || check(TokenType.AS_KW)) {
             TokenType nextType = peek().getTokenType();
             int x = terminals.indexOf(symbolStack.peek());
             int y = terminals.indexOf(nextType);
@@ -558,12 +538,11 @@ public class Analyser {
                     SymbolType type = analyseType();
                     exprStack.push(type);
                 } else
-                    exprStack.push(analyseOtherExpr(isGlobal));
+                    exprStack.push(analyseExpr(isGlobal));
 
             } else if (y == -1 || map[x][y] == true) {
                 huisu(symbolStack, exprStack, isGlobal);
             }
-//            }
         }
         return exprStack.peek();
     }
@@ -702,7 +681,7 @@ public class Analyser {
         } else throw new EmptyStackException();
     }
 
-    private SymbolType analyseOtherExpr(boolean isGlobal) throws CompileError {
+    private SymbolType analyseExpr(boolean isGlobal) throws CompileError {
         Token token;
         ArrayList<Instruction> chosenInstruction;
         if (isGlobal)
@@ -749,7 +728,7 @@ public class Analyser {
                         break;
                 }
                 Token assign = next();
-                SymbolType t = analyseExprOPG(false);
+                SymbolType t = analysebasicexpr(false);
                 changeInitialized(token.getValueString(), token.getStartPos());
                 if (t != symbol.symbolType)
                     throw new AnalyzeError(ErrorCode.InvalidAssignment);
@@ -788,11 +767,6 @@ public class Analyser {
                             funcReturnType = SymbolType.VOID;
                             params = new ArrayList<>();
                             break;
-//                        case "main":
-//                            funcReturnType = SymbolType.VOID;
-//                            params = new ArrayList<>();
-//                            haveMain = true;
-//                            break;
                         default:
                             throw new AnalyzeError(ErrorCode.NotDeclared, token.getStartPos());
                     }
@@ -812,11 +786,11 @@ public class Analyser {
                 int paramsSize = params.size();
                 int i = 0;
                 if (check(TokenType.MINUS) || check(TokenType.IDENT) || check(TokenType.UINT_LITERAL) || check(TokenType.DOUBLE_LITERAL) || check(TokenType.STRING_LITERAL) || check(TokenType.CHAR_LITERAL) || check(TokenType.L_PAREN)) {
-                    SymbolType t = analyseExprOPG(isGlobal);
+                    SymbolType t = analysebasicexpr(isGlobal);
                     if (i + 1 > paramsSize || t != params.get(i++))
                         throw new AnalyzeError(ErrorCode.InvalidInput);
                     while (nextIf(TokenType.COMMA) != null) {
-                        t = analyseExprOPG(isGlobal);
+                        t = analysebasicexpr(isGlobal);
                         if (i + 1 > paramsSize || t != params.get(i++))
                             throw new AnalyzeError(ErrorCode.InvalidInput);
                     }
@@ -844,48 +818,34 @@ public class Analyser {
                 chosenInstruction.add(new Instruction(Operation.load64));
                 return symbol.symbolType;
             }
-        } else if (check(TokenType.MINUS)) {
-            return analyseNegateExpr(isGlobal);
-        } else if (check(TokenType.L_PAREN)) {
+        } 
+        else if (check(TokenType.MINUS)) 
+        {
+            expect(TokenType.MINUS);
+            SymbolType t = analyseExpr(isGlobal);
+            if (t == SymbolType.INT) {
+                if (isGlobal)
+                    start.add(new Instruction(Operation.negi));
+                else
+                    instructions.add(new Instruction(Operation.negi));
+            } else {
+                if (isGlobal)
+                    start.add(new Instruction(Operation.negf));
+                else
+                    instructions.add(new Instruction(Operation.negf));
+            }
+            return t;
+        } 
+        else if (check(TokenType.L_PAREN)) {
             expect(TokenType.L_PAREN);
-            SymbolType element = analyseExprOPG(isGlobal);
+            SymbolType element = analysebasicexpr(isGlobal);
             expect(TokenType.R_PAREN);
             return element;
-        } else
-            throw new ExpectedTokenError(Arrays.asList(TokenType.UINT_LITERAL, TokenType.DOUBLE_LITERAL, TokenType.STRING_LITERAL, TokenType.CHAR_LITERAL, TokenType.IDENT, TokenType.MINUS), peek());
-//        }else if (check(TokenType.MINUS)){
-//            analyseNegateExpr();
-//        } else if (check(TokenType.L_PAREN)) {
-//            analyseGroupExpr();
-//        }
-//        while (check(TokenType.PLUS) || check(TokenType.MINUS) || check(TokenType.MUL) || check(TokenType.DIV) || check(TokenType.EQ) || check(TokenType.NEQ) || check(TokenType.LT) || check(TokenType.GT) || check(TokenType.GE) || check(TokenType.LE) || check(TokenType.AS_KW)) {
-//            if (nextIf(TokenType.AS_KW) != null) {
-//                SymbolType type = analyseType();
-//            } else {
-//                Token operator = next();
-//                switch (operator.getTokenType()) {
-//                    case PLUS:
-//                }
-//            }
-//        }
+        } 
+        else
+            throw new AnalyzeError(ErrorCode.InvalidInput);
     }
 
-    private SymbolType analyseNegateExpr(boolean isGlobal) throws CompileError {
-        expect(TokenType.MINUS);
-        SymbolType t = analyseOtherExpr(isGlobal);
-        if (t == SymbolType.INT) {
-            if (isGlobal)
-                start.add(new Instruction(Operation.negi));
-            else
-                instructions.add(new Instruction(Operation.negi));
-        } else {
-            if (isGlobal)
-                start.add(new Instruction(Operation.negf));
-            else
-                instructions.add(new Instruction(Operation.negf));
-        }
-        return t;
-    }
 
 
     private SymbolType analyseType() throws CompileError {
